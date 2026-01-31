@@ -1,5 +1,6 @@
 import { Select, SelectProps, Grid } from "antd";
 import type { DefaultOptionType } from "antd/es/select";
+import { useMemo } from "react";
 import { useAccountSearch } from "../../hooks/useAccountSearch";
 import { AccountItem } from "../../components/account-item/account_item";
 import { shortenAddress } from "../../utils/methods";
@@ -62,11 +63,15 @@ const AccountSelect: React.FC<AccountSelectProps> = ({
   const labelRender = (option: DefaultOptionType) => {
     if (!option.label) return null;
     const accountData = JSON.parse(option.label as string) as AccountOption; // Deserialize account data from string
-    return screens.md ? (
-      <div>{accountData.name} _ {shortenAddress(accountData?.address!, 20, 30)}</div>
-    ) : (
-      <div>{accountData.name} _ {shortenAddress(accountData?.address!, 10, 15)}</div>
+    const shortenedAddress = useMemo(
+      () =>
+        screens.md
+          ? shortenAddress(accountData?.address!, 20, 30)
+          : shortenAddress(accountData?.address!, 10, 15),
+      [accountData?.address, screens.md],
     );
+
+    return <div>{accountData.name} _ {shortenedAddress}</div>;
   };
 
   const handleChange = (value: string, option: any) => {

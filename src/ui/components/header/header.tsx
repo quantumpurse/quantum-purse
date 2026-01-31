@@ -1,6 +1,6 @@
 import { Button, Grid, Tooltip } from "antd";
 import { MenuOutlined } from "@ant-design/icons";
-import React, { useContext, useEffect, useState } from "react";
+import React, { useContext, useEffect, useMemo, useState } from "react";
 import { useLocation } from "react-router-dom";
 import LayoutCtx from "../../context/layout_ctx";
 import { cx, shortenAddress, formatBalance } from "../../utils/methods";
@@ -29,6 +29,11 @@ const Header: React.FC<HeaderProps> = ({ className, ...rest }) => {
   const balance = wallet.current?.balance;
   const locked = wallet.current?.lockedInDao;
   const noBalance = (balance == "0" && locked == "0");
+  const shortenedNodeId = useMemo(
+    () => shortenAddress(syncStatus.nodeId, 3, 5),
+    [syncStatus.nodeId]
+  );
+
   const balanceData = noBalance
     ? [
         // fake data for no balance, creating "en empty pie" effect
@@ -208,7 +213,7 @@ const Header: React.FC<HeaderProps> = ({ className, ...rest }) => {
                       Id: {" "}
                       {syncStatus.nodeId && syncStatus.nodeId !== "NULL" ? (
                         <Copy value={syncStatus.nodeId} style={{ display: 'inline-block' }}>
-                          <span className={styles.copyable}>{shortenAddress(syncStatus.nodeId, 3, 5)}</span>
+                          <span className={styles.copyable}>{shortenedNodeId}</span>
                         </Copy>
                       ) : (
                         <span>{syncStatus.nodeId}</span>
@@ -257,7 +262,7 @@ const Header: React.FC<HeaderProps> = ({ className, ...rest }) => {
                   Id: {" "}
                   {syncStatus.nodeId && syncStatus.nodeId !== "NULL" ? (
                     <Copy value={syncStatus.nodeId} style={{ display: 'inline-block' }}>
-                      <span className={styles.copyable}>{shortenAddress(syncStatus.nodeId, 3, 5)}</span>
+                      <span className={styles.copyable}>{shortenedNodeId}</span>
                     </Copy>
                   ) : (
                     <span>{syncStatus.nodeId}</span>

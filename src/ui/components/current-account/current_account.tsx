@@ -1,3 +1,4 @@
+import { useMemo } from "react";
 import { CopyOutlined, QuestionCircleOutlined } from "@ant-design/icons";
 import { cx, formatBalance, shortenAddress } from "../../utils/methods";
 import Copy from "../copy/copy";
@@ -19,6 +20,11 @@ const CurrentAccount: React.FC<CurrentAccountProps> = ({
   className,
   ...props
 }) => {
+  const shortened = useMemo(
+    () => shortenAddress(address, 6, 6),
+    [address]
+  );
+
   return (
     <div className={cx(styles.currentAccount, className)} {...props}>
       <p className="name">{name}</p>
@@ -32,7 +38,7 @@ const CurrentAccount: React.FC<CurrentAccountProps> = ({
       </div>
       {address && (
         <Copy value={address} className="address-utilities">
-          <p className="address">{shortenAddress(address,6,6)}</p>
+          <p className="address">{shortened}</p>
           <CopyOutlined className="copy-icon" />
         </Copy>
       )}

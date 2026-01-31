@@ -10,6 +10,7 @@ export const shortenAddress = (
   sequenceEnd = 4
 ) => {
   if (!address) return "";
+  if (address.length <= sequenceStart + sequenceEnd + 3) return address;
   return address.slice(0, sequenceStart) + "..." + address.slice(-sequenceEnd);
 };
 

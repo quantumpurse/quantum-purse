@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { CopyOutlined } from "@ant-design/icons";
 import Copy from "../copy/copy";
 import { IAccount } from "../../store/models/interface";
@@ -22,6 +22,10 @@ const AccountSetting: React.FC<AccountSettingProps> = ({ account, onClose }) => 
   const [startingBlock, setStartingBlock] = useState("");
   const [isSettingBlock, setIsSettingBlock] = useState(false);
   const tipBlock = syncStatus.tipBlock;
+  const shortenedAddress = useMemo(
+    () => shortenAddress(account.address!, 10, 20),
+    [account.address]
+  );
 
   const startBlockValidator = (): string | undefined => {
     if (startingBlock === "") return undefined;
@@ -75,7 +79,7 @@ const AccountSetting: React.FC<AccountSettingProps> = ({ account, onClose }) => 
       <h2 className={styles.centeredHeading}>{account.name}</h2>
       <Copy value={account.address!}>
         <Flex align="center" gap={8} className={styles.address}>
-          {shortenAddress(account.address!, 10, 20)}
+          {shortenedAddress}
           <CopyOutlined />
         </Flex>
       </Copy>
