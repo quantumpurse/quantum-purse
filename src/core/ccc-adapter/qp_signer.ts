@@ -13,7 +13,9 @@ import {
   Script,
   hexFrom,
   WitnessArgs,
-  HashTypeLike
+  HashTypeLike,
+  ClientPublicMainnet,
+  ClientPublicTestnet
 } from "@ckb-ccc/core";
 import { QPClient } from "./qp_client";
 import { IS_MAIN_NET } from "../config";
@@ -24,6 +26,7 @@ export class QPSigner extends Signer {
   public accountPointer?: BytesLike;
   protected spxLock: { codeHash: BytesLike, hashType: HashTypeLike };
   protected keyVault?: KeyVault;
+  protected rpcNode?: ClientPublicMainnet | ClientPublicTestnet;
   public requestPassword?: (
     resolve: (password: Uint8Array) => void,
     reject: () => void
@@ -31,6 +34,7 @@ export class QPSigner extends Signer {
 
   constructor(spxLockInfo: { codeHash: BytesLike, hashType: HashTypeLike }) {
     super(new QPClient());
+    this.rpcNode = IS_MAIN_NET ? new ClientPublicMainnet() : new ClientPublicTestnet();
     this.spxLock = spxLockInfo;
   }
 

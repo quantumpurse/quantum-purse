@@ -533,10 +533,17 @@ export default class QuantumPurse extends QPSigner {
         };
 
         let startBlock = BigInt(0);
-        const response = await this.client.getTransactions(searchKey, "asc", 1);
-        if (response.transactions && response.transactions.length > 0) {
-          // found the first transation, set to the block prior
-          startBlock = response.transactions[0].blockNumber - BigInt(1);
+
+        // prioritize light client, fallback to public rpc node in wallet recovery
+        const lightClientResponse = await this.client.getTransactions(searchKey, "asc", 1);
+        const rpcResponse = await this.rpcNode?.findTransactions(searchKey, "asc", 1);
+        if (lightClientResponse.transactions && lightClientResponse.transactions.length > 0) {
+          startBlock = lightClientResponse.transactions[0].blockNumber - BigInt(1);
+        } else if (rpcResponse) {
+          const result = await rpcResponse.next();
+          if (result.value && result.value.blockNumber !== undefined) {
+            startBlock = result.value.blockNumber - BigInt(1);
+          }
         }
         return startBlock;
       });
