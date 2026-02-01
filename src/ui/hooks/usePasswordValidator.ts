@@ -36,7 +36,7 @@ const usePasswordValidator = (variant: SpxVariant) => {
         [SpxVariant.Sha2256S]: 256,
         [SpxVariant.Shake256S]: 256,
       };
-      const requiredEntropy = entropyMap[variant] || 256;
+      const requiredEntropy = entropyMap[variant] || 128;
       if (level < requiredEntropy) {
         return Promise.reject(new Error("abc"));
       }
