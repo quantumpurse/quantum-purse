@@ -7,6 +7,7 @@ export { default as Deposit } from "./DAO/Deposit/Deposit";
 export { default as RequestWithdraw } from "./DAO/RequestWithdraw/RequestWithdraw";
 export { default as Withdraw } from "./DAO/Withdraw/Withdraw";
 export { default as Accounts } from "./Settings/Accounts/Accounts";
+export { default as XXX } from "./Settings/XXX/XXX";
 export { default as RevealSRP } from "./Settings/RevealSRP/RevealSRP";
 export { default as EjectWallet } from "./Settings/EjectWallet/EjectWallet";
 export { default as CommingSoon } from "./CommingSoon/CommingSoon";
