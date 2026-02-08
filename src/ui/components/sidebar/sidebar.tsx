@@ -63,6 +63,11 @@ const items: MenuItem[] = [
         label: <NavLink to={ROUTES.SETTINGS.ACCOUNTS}>Accounts</NavLink>,
       },
       {
+        key: ROUTES.SETTINGS.XXX,
+        icon: <Icon.Dao />,
+        label: <NavLink to={ROUTES.SETTINGS.XXX}>XXX</NavLink>,
+      },
+      {
         key: ROUTES.SETTINGS.REVEAL_SRP,
         icon: <Icon.Reveal />,
         label: <NavLink to={ROUTES.SETTINGS.REVEAL_SRP}>Reveal SRP</NavLink>,

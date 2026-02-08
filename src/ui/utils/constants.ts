@@ -19,6 +19,7 @@ export const ROUTES = {
     ACCOUNTS: "/settings/accounts",
     REVEAL_SRP: "/settings/reveal-srp",
     EJECT_WALLET: "/settings/eject-wallet",
+    XXX: "/settings/daov2",
   },
 };
 

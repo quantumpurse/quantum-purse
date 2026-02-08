@@ -19,6 +19,7 @@ import {
   RequestWithdraw,
   Withdraw,
   Accounts,
+  XXX,
   Welcome,
 } from "./ui/pages";
 import { ROUTES, STORAGE_KEYS } from "./ui/utils/constants";
@@ -138,6 +139,7 @@ const App: React.FC = () => {
           <Route path={ROUTES.NERVOS_DAO.REQUEST_WITHDRAW} element={<RequestWithdraw />} />
           <Route path={ROUTES.NERVOS_DAO.WITHDRAW} element={<Withdraw />} />
           <Route path={ROUTES.SETTINGS.ACCOUNTS} element={<Accounts />} />
+          <Route path={ROUTES.SETTINGS.XXX} element={<XXX />} />
           <Route path={ROUTES.SETTINGS.REVEAL_SRP} element={<RevealSRP />} />
           <Route path={ROUTES.SETTINGS.EJECT_WALLET} element={<EjectWallet />} />
         </Route>
