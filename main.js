@@ -134,7 +134,7 @@ app.whenReady().then(async () => {
         // for packaged app - containing mainnet build - only allow secure connections
         const connectSrc = app.isPackaged 
             ? "connect-src 'self' wss:; "
-            : "connect-src 'self' https://ckb-faucet-proxy.vercel.app ws: wss:; ";
+            : "connect-src 'self' http://localhost:8080 https://ckb-faucet-proxy.vercel.app ws: wss:; ";
 
         responseHeaders['Content-Security-Policy'] = [
             "default-src 'self'; " +
