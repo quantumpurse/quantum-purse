@@ -881,4 +881,50 @@ export default class QuantumPurse extends QPSigner {
     else
       return (await this.sendTransaction(tx));
   }
+
+  /**
+   * Sign an arbitrary message with the SPHINCS+ private key for a specific address.
+   * This is used for signing challenges in the DAO v2 address binding process.
+   *
+   * @param message - The message to sign (will be converted to bytes)
+   * @param lockArgs - The SPHINCS+ lock script args to identify which address's key to use
+   * @returns The signature as a hex string
+   */
+  public async signXXXMessage(message: string, lockArgs: string): Promise<string> {
+    if (!this.keyVault) throw new Error("KeyVault not initialized!");
+
+    let password: Uint8Array = new Uint8Array(0);
+    try {
+      // Request password from user
+      const passwordHandler = new Promise<Uint8Array>((resolve, reject) => {
+        if (this.requestPassword) {
+          this.requestPassword(resolve, reject);
+        } else {
+          reject(new Error("Password request callback not available"));
+        }
+      });
+
+      password = await passwordHandler;
+
+      // Convert message to bytes
+      const encoder = new TextEncoder();
+      const messageBytes = encoder.encode(message);
+
+      // Sign the message with the SPHINCS+ private key for the specified address
+      // The lockArgs parameter tells KeyVault which address's private key to use
+      const signature = await this.keyVault.sign(password, lockArgs, messageBytes);
+
+      // Convert signature to hex string
+      const hexSignature = Array.from(signature)
+        .map(b => b.toString(16).padStart(2, '0'))
+        .join('');
+
+      return hexSignature;
+    } catch (error: any) {
+      throw new Error("Failed to sign message: " + error);
+    } finally {
+      // Clear password from memory
+      password.fill(0);
+    }
+  }
 }

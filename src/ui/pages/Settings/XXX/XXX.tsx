@@ -9,12 +9,13 @@ import {
   Tag,
   Space,
 } from "antd";
-import React, { useState } from "react";
+import React, { useState, useRef, useEffect } from "react";
 import { cx, formatError } from "../../../utils/methods";
 import styles from "./XXX.module.scss";
 import { quantum } from "../../../store/models/wallet";
-import { createBindingSession } from "../../../../core/dao_v2";
+import { createBindingSession, completeBinding } from "../../../../core/dao_v2";
 import { Hex } from "@ckb-ccc/core";
+import { Authentication, AuthenticationRef } from "../../../components";
 
 const { Title, Text } = Typography;
 
@@ -25,6 +26,28 @@ const XXX: React.FC = () => {
   const [accountInfo, setAccountInfo] = useState<any>(null);
   const [challenges, setChallenges] = useState<any[]>([]);
   const [addressesToBind, setAddressesToBind] = useState<string[]>([]);
+  const [lockScriptArgs, setLockScriptArgs] = useState<string[]>([]);
+  const authenticationRef = useRef<AuthenticationRef>(null);
+  const [passwordResolver, setPasswordResolver] = useState<{
+    resolve: (password: Uint8Array) => void;
+    reject: () => void;
+  } | null>(null);
+  const [isAuthenticating, setIsAuthenticating] = useState(false);
+
+  // Set and clean up the requestPassword callback
+  useEffect(() => {
+    if (quantum) {
+      quantum.requestPassword = (resolve, reject) => {
+        setPasswordResolver({ resolve, reject });
+        authenticationRef.current?.open();
+      };
+    }
+    return () => {
+      if (quantum) {
+        quantum.requestPassword = undefined;
+      }
+    };
+  }, []);
 
   const handleBind = async () => {
     if (!apiKey.trim()) {
@@ -48,11 +71,15 @@ const XXX: React.FC = () => {
         quantum.getAddress(lockArg as Hex)
       );
 
-      // Store addresses for later use
+      // Store addresses and lock script args for later use
       setAddressesToBind(addresses);
+      setLockScriptArgs(lockScriptArgs);
 
-      // Call createBindingSession with the API key and addresses
-      const response = await createBindingSession(apiKey, addresses);
+      // Get the SPHINCS+ variant from the wallet
+      const sphincsVariant = quantum.getSphincsPlusParamSet();
+
+      // Call createBindingSession with the API key, addresses, and variant
+      const response = await createBindingSession(apiKey, addresses, sphincsVariant);
 
       // Handle the response - check for account_info and challenges
       if (response.account_info && response.challenges) {
@@ -88,10 +115,63 @@ const XXX: React.FC = () => {
   };
 
   const handleConfirmBinding = async () => {
-    // This will be implemented in the next step for signing challenges
-    // For now, just close the modal
-    setAccountInfoModalVisible(false);
-    message.info("Binding confirmation will be implemented in next step");
+    if (!quantum) {
+      message.error("Wallet not initialized");
+      return;
+    }
+
+    try {
+      // Show loading state
+      const loadingMessage = message.loading('Signing challenges and completing address binding...', 0);
+
+      // Use the completeBinding function to handle the entire flow
+      const result = await completeBinding(
+        apiKey,
+        challenges,     // Pass the already-fetched challenges
+        lockScriptArgs,
+        quantum
+      );
+
+      // Close loading message
+      loadingMessage();
+
+      // Close modal
+      setAccountInfoModalVisible(false);
+
+      // Show success message
+      message.success({
+        content: `Successfully bound ${addressesToBind.length} address(es) to your XXX account!`,
+        duration: 5
+      });
+
+      // Clear state after successful binding
+      setAccountInfo(null);
+      setChallenges([]);
+      setAddressesToBind([]);
+      setLockScriptArgs([]);
+      setApiKey("");  // Clear the API key after successful binding
+
+      console.log("Binding result:", result);
+
+    } catch (error) {
+      console.error("Failed to complete address binding:", error);
+      message.error({
+        content: `Failed to bind addresses: ${formatError(error)}`,
+        duration: 0,  // Don't auto-dismiss error messages
+      });
+    } finally {
+      setIsAuthenticating(false);
+      authenticationRef.current?.close();
+    }
+  };
+
+  // Handle password submission from Authentication modal
+  const authenCallback = async (password: Uint8Array) => {
+    if (passwordResolver) {
+      setIsAuthenticating(true);
+      passwordResolver.resolve(password);
+      setPasswordResolver(null);
+    }
   };
 
   const handleCancelBinding = () => {
@@ -99,6 +179,7 @@ const XXX: React.FC = () => {
     setAccountInfo(null);
     setChallenges([]);
     setAddressesToBind([]);
+    setLockScriptArgs([]);
     message.info("Address binding cancelled");
   };
 
@@ -213,6 +294,21 @@ const XXX: React.FC = () => {
           </Flex>
         )}
       </Modal>
+
+      {/* Authentication modal for password input */}
+      <Authentication
+        ref={authenticationRef}
+        authenCallback={authenCallback}
+        loading={isAuthenticating}
+        title="Sign Address Binding"
+        description="Enter your password to sign the address binding challenges"
+        afterClose={() => {
+          if (passwordResolver) {
+            passwordResolver.reject();
+            setPasswordResolver(null);
+          }
+        }}
+      />
     </section>
   );
 };
