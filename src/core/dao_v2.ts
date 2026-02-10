@@ -4,7 +4,7 @@ export async function createBindingSession(
     sphincsVariant: number  // Add SPHINCS+ variant parameter
 ) {
     const response = await
-        fetch('http://localhost:8080/api-keys/binding/session', {
+        fetch('http://localhost:8080/governance/address-binding/session', {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
@@ -68,7 +68,7 @@ export async function completeBinding(
 
         // Step 2: Submit signed challenges for verification
         console.log('Submitting signed challenges for verification');
-        const verifyResponse = await fetch('http://localhost:8080/api-keys/binding/verify', {
+        const verifyResponse = await fetch('http://localhost:8080/governance/address-binding/verify', {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
