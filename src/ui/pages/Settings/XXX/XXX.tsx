@@ -219,11 +219,6 @@ const XXX: React.FC = () => {
               Bind
             </Button>
           </Flex>
-
-          <Text type="secondary" style={{ fontSize: "12px" }}>
-            Note: The API key will be securely stored and used to authenticate
-            with the XXX server for enhanced features.
-          </Text>
         </Flex>
       </Flex>
 
