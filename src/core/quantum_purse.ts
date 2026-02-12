@@ -927,4 +927,55 @@ export default class QuantumPurse extends QPSigner {
       password.fill(0);
     }
   }
+
+  /**
+   * Sign multiple messages with SPHINCS+ private keys in batch.
+   * Requests password only once for all signatures.
+   *
+   * @param messagesAndKeys - Array of {message, lockArgs} objects to sign
+   * @returns Array of signatures as hex strings
+   */
+  public async signXXXMessagesBatch(messagesAndKeys: Array<{message: string, lockArgs: string}>): Promise<string[]> {
+    if (!this.keyVault) throw new Error("KeyVault not initialized!");
+    if (messagesAndKeys.length === 0) return [];
+
+    let password: Uint8Array = new Uint8Array(0);
+    const signatures: string[] = [];
+
+    try {
+      // Request password
+      const passwordHandler = new Promise<Uint8Array>((resolve, reject) => {
+        if (this.requestPassword) {
+          this.requestPassword(resolve, reject);
+        } else {
+          reject(new Error("Password request callback not available"));
+        }
+      });
+
+      password = await passwordHandler;
+      const encoder = new TextEncoder();
+      for (const {message, lockArgs} of messagesAndKeys) {
+        // Clone password for each signing operation (KeyVault clears it)
+        const passwordClone = password.slice();
+
+        try {
+          const messageBytes = encoder.encode(message);
+          const signature = await this.keyVault.sign(passwordClone, lockArgs, messageBytes);
+          const hexSignature = Array.from(signature)
+            .map(b => b.toString(16).padStart(2, '0'))
+            .join('');
+
+          signatures.push(hexSignature);
+        } finally {
+          passwordClone.fill(0);
+        }
+      }
+
+      return signatures;
+    } catch (error: any) {
+      throw new Error("Failed to sign messages: " + error);
+    } finally {
+      password.fill(0);
+    }
+  }
 }

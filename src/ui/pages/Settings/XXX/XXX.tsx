@@ -7,7 +7,6 @@ import {
   Modal,
   Divider,
   Tag,
-  Space,
 } from "antd";
 import React, { useState, useRef, useEffect } from "react";
 import { cx, formatError } from "../../../utils/methods";
