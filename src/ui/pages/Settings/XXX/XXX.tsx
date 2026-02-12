@@ -74,11 +74,8 @@ const XXX: React.FC = () => {
       setAddressesToBind(addresses);
       setLockScriptArgs(lockScriptArgs);
 
-      // Get the SPHINCS+ variant from the wallet
-      const sphincsVariant = quantum.getSphincsPlusParamSet();
-
       // Call createBindingSession with the API key, addresses, and variant
-      const response = await createBindingSession(apiKey, addresses, sphincsVariant);
+      const response = await createBindingSession(apiKey, addresses);
 
       // Handle the response - check for account_info and challenges
       if (response.account_info && response.challenges) {
