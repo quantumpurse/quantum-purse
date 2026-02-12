@@ -1,3 +1,5 @@
+import QuantumPurse from "./quantum_purse";
+
 export async function createBindingSession(
     apiKey: string,
     addresses: string[],
@@ -38,33 +40,28 @@ export async function createBindingSession(
  */
 export async function completeBinding(
     apiKey: string,
-    challenges: any[],      // Use already-fetched challenges
+    challenges: any[],
     lockArgsList: string[],
-    quantumPurse: any      // QuantumPurse instance
+    quantumPurse: QuantumPurse
 ) {
     try {
-        // Step 1: Sign each challenge with the corresponding address's private key
-        console.log('Signing challenges for addresses...');
-        const signedChallenges = [];
+        // Step 1: Sign all challenges in batch with a single password request
+        console.log('Signing challenges for all addresses in batch...');
 
-        for (let i = 0; i < challenges.length; i++) {
-            const challenge = challenges[i];
-            const lockArgs = lockArgsList[i];
+        // Prepare messages and keys for batch signing
+        const messagesToSign = challenges.map((challenge, i) => ({
+            message: challenge.challenge,
+            lockArgs: lockArgsList[i]
+        }));
 
-            console.log(`Signing challenge for address ${challenge.address}`);
+        // Sign all messages with one password request
+        const signatures = await quantumPurse.signXXXMessagesBatch(messagesToSign);
 
-            // Sign the challenge text with the SPHINCS+ private key
-            // This will trigger the password modal for user authentication
-            const signature = await quantumPurse.signXXXMessage(
-                challenge.challenge,  // The challenge text to sign
-                lockArgs              // Which address's key to use
-            );
-
-            signedChallenges.push({
-                address: challenge.address,
-                signature: signature
-            });
-        }
+        // Build signed challenges array
+        const signedChallenges = signatures.map((signature, i) => ({
+            address: challenges[i].address,
+            signature: signature
+        }));
 
         // Step 2: Submit signed challenges for verification
         console.log('Submitting signed challenges for verification');
