@@ -2,8 +2,7 @@ import QuantumPurse from "./quantum_purse";
 
 export async function createBindingSession(
     apiKey: string,
-    addresses: string[],
-    sphincsVariant: number  // Add SPHINCS+ variant parameter
+    addresses: string[]
 ) {
     const response = await
         fetch('http://localhost:8080/governance/address-binding/session', {
@@ -13,13 +12,7 @@ export async function createBindingSession(
                 'Authorization': `Bearer ${apiKey}`  // Send API key in header
             },
             body: JSON.stringify({
-                addresses_to_bind: addresses,
-                wallet_info: {
-                    type: 'QuantumPurse',
-                    version: '0.3.3',
-                    platform: 'wasm/web',  // Platform is WASM running in web browser
-                    sphincs_variant: sphincsVariant  // Include SPHINCS+ variant for signature verification
-                }
+                addresses_to_bind: addresses
             })
         });
 
