@@ -207,16 +207,16 @@ const XXX: React.FC = () => {
     <section className={cx(styles.daov2, "panel")}>
       <Flex vertical gap="large" style={{ width: "100%" }}>
         <div>
-          <Title level={4}>XXX Configuration</Title>
-          <Text type="secondary">
+          <Title level={4} style={{ color: 'white' }}>XXX Configuration</Title>
+          <Text type="secondary" style={{ color: 'rgba(255, 255, 255, 0.65)' }}>
             Connect your wallet to the XXX server by providing your API key
           </Text>
         </div>
 
         <Flex vertical gap="middle" style={{ width: "100%" }}>
           <div>
-            <Text strong>API Key</Text>
-            <Text type="secondary" style={{ marginLeft: 8 }}>
+            <Text strong style={{ color: 'white' }}>API Key</Text>
+            <Text type="secondary" style={{ marginLeft: 8, color: 'rgba(255, 255, 255, 0.65)' }}>
               (Generated from XXX server)
             </Text>
           </div>
