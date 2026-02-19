@@ -79,9 +79,32 @@ const XXX: React.FC = () => {
 
       // Handle the response - check for account_info and challenges
       if (response.account_info && response.challenges) {
+        // Check if there are any challenges (unbound addresses)
+        if (response.challenges.length === 0) {
+          message.info({
+            content: "All your addresses are already bound to this XXX account.",
+            duration: 5
+          });
+          return;
+        }
+
         // Store the account info and challenges
         setAccountInfo(response.account_info);
         setChallenges(response.challenges);
+
+        // Only store the addresses that have challenges (unbound ones)
+        const unboundAddresses = response.challenges.map((c: any) => c.address);
+        setAddressesToBind(unboundAddresses);
+
+        // Filter lockScriptArgs to match the unbound addresses
+        const unboundLockArgs = [];
+        for (let i = 0; i < addresses.length; i++) {
+          if (unboundAddresses.includes(addresses[i])) {
+            unboundLockArgs.push(lockScriptArgs[i]);
+          }
+        }
+
+        setLockScriptArgs(unboundLockArgs);
 
         // Show the account confirmation modal
         setAccountInfoModalVisible(true);
@@ -135,8 +158,9 @@ const XXX: React.FC = () => {
       setAccountInfoModalVisible(false);
 
       // Show success message
+      const boundCount = result.bound_addresses ? result.bound_addresses.length : addressesToBind.length;
       message.success({
-        content: `Successfully bound ${addressesToBind.length} address(es) to your XXX account!`,
+        content: `Successfully bound ${boundCount} address(es) to your XXX account!`,
         duration: 5
       });
 
