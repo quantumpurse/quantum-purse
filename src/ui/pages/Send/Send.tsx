@@ -25,8 +25,6 @@ import { cx, formatError, download } from "../../utils/methods";
 import styles from "./Send.module.scss";
 import QuantumPurse from "../../../core/quantum_purse";
 import { Address, fixedPointFrom } from "@ckb-ccc/core";
-// import { Html5QrcodeScanner } from "html5-qrcode";
-// import { logger } from "../../../core/logger";
 
 const Send: React.FC = () => {
   const [form] = Form.useForm();
@@ -43,7 +41,6 @@ const Send: React.FC = () => {
     reject: () => void;
   } | null>(null);
   const [feeRate, setFeeRate] = useState<number | undefined>(undefined);
-  // const [scannerUp, setScannerUp] = useState(false);
   const [isSendToMyAccount, setIsSendToMyAccount] = useState(false);
   const [isSendMax, setIsSendMax] = useState(false);
   const [isCustomFee, setIsCustomFee] = useState(false);
@@ -113,32 +110,6 @@ const Send: React.FC = () => {
     setFeeRate(feeRate);
   };
 
-  // useEffect(() => {
-  //   if (!scannerUp) return;
-
-  //   const scanner = new Html5QrcodeScanner(
-  //     "reader",
-  //     { fps: 10, qrbox: 250 },
-  //     false
-  //   );
-
-  //   scanner.render(
-  //     (decodedAddress) => {
-  //       form.setFieldsValue({ to: decodedAddress });
-  //       form.validateFields(["to"]);
-  //       setScannerUp(false);
-  //       scanner.clear();
-  //     },
-  //     (errorMessage) => {
-  //       logger("info", errorMessage);
-  //     }
-  //   );
-
-  //   return () => {
-  //     scanner.clear().catch(() => {});
-  //   };
-  // }, [scannerUp]);
-
   const handleSend = async (signOffline: boolean) => {
     try {
       if (signOffline) {
@@ -146,7 +117,7 @@ const Send: React.FC = () => {
           ? await dispatch.wallet.sendAll({ to: values.to, feeRate, signOffline: true })
           : await dispatch.wallet.send({ to: values.to, amount: values.amount, feeRate , signOffline: true });
         Modal.success({
-          title: 'Signed Transaciton Successfully',
+          title: 'Signed Transaction Successfully',
           content: (
             <div>
               <p>You can now save the signed transaction file and broadcast it later using a CKB node or explorer.</p>
@@ -184,7 +155,7 @@ const Send: React.FC = () => {
     } catch (error) {
 
       Modal.error({
-        title: 'Tranfer Transaction Failed',
+        title: 'Transfer Transaction Failed',
         content: (
           <div>
             <p>{formatError(error)}</p>
@@ -248,10 +219,6 @@ const Send: React.FC = () => {
                   value={values?.to}
                   placeholder="Input the destination address"
                 />
-                {/* <Button
-                  onClick={() => setScannerUp(true)}
-                  icon={<ScanOutlined />}
-                /> */}
                 <Button
                   onClick={() => {
                     setIsSendToMyAccount(!isSendToMyAccount);
@@ -261,7 +228,7 @@ const Send: React.FC = () => {
                 />
               </Space.Compact>
             ) : (
-              <Space.Compact style={{ display: "Flex" }}>
+              <Space.Compact style={{ display: "flex" }}>
                 <AccountSelect
                   accounts={wallet.accounts}
                   onAccountChange={(val) => form.setFieldsValue({ to: val })}
@@ -305,12 +272,11 @@ const Send: React.FC = () => {
                   },
                 ]}
               >
-                <Space.Compact style={{ display: "Flex" }}>
+                <Space.Compact style={{ display: "flex" }}>
                   <Input
                     value={values?.amount}
                     placeholder="Enter transfer amount"
                     disabled={isSendMax}
-                    style={{backgroundColor: "var(--gray-light)"}}
                   />
                   <Button
                     onClick={() => setIsSendMax(!isSendMax)}
@@ -332,7 +298,7 @@ const Send: React.FC = () => {
                   </div>
                 }
               >
-                <Space.Compact style={{ display: "Flex" }}>
+                <Space.Compact style={{ display: "flex" }}>
                   <div style={{ flex: 1 }}>
                     <FeeRateSelect onFeeRateChange={handleFeeRateChange} custom={isCustomFee} />
                   </div>
@@ -356,10 +322,9 @@ const Send: React.FC = () => {
               </div>
             }
           >
-            <Flex style={{gap: "0.5rem"}}>
+            <Flex gap="0.5rem">
               <Button
                 onClick={() => handleSend(true)}
-                style={{ marginRight: 8, height: "3rem" }}
                 disabled={!submittable || loadingSend}
                 className={styles.sendButton}
               >
@@ -367,7 +332,6 @@ const Send: React.FC = () => {
               </Button>
 
               <Button
-                // type="primary"
                 onClick={() => handleSend(false)}
                 disabled={!submittable || loadingSend}
                 loading={loadingSend}
@@ -390,16 +354,6 @@ const Send: React.FC = () => {
             }
           }}
         />
-
-        {/* <Modal
-          open={scannerUp}
-          onCancel={() => setScannerUp(false)}
-          footer={null}
-          title="Scan QR Code"
-        >
-          <div id="reader" style={{ width: "100%" }} />
-        </Modal> */}
-
       </div>
     </section>
   );

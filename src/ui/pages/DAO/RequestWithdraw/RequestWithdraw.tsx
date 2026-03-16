@@ -10,7 +10,6 @@ import QuantumPurse from "../../../../core/quantum_purse";
 import { ccc, ClientBlockHeader, Hex } from "@ckb-ccc/core";
 import { NERVOS_DAO } from "../../../../core/config";
 import { parseEpoch, getProfit } from "../../../../core/epoch";
-// import { Html5QrcodeScanner } from "html5-qrcode";
 import { logger } from '../../../../core/logger';
 
 const RequestWithdraw: React.FC = () => {
@@ -32,7 +31,6 @@ const RequestWithdraw: React.FC = () => {
       blockNum: bigint;
     };
   }>({});
-  // const [scannerUp, setScannerUp] = useState(false);
   const [isRequestToMyAccount, setIsRequestToMyAccount] = useState(false);
   const [isCustomFee, setIsCustomFee] = useState(false);
   const [isAuthenticating, setIsAuthenticating] = useState(false);
@@ -128,32 +126,6 @@ const RequestWithdraw: React.FC = () => {
       };
     }
   }, [quantumPurse]);
-
-  // useEffect(() => {
-  //   if (!scannerUp) return;
-
-  //   const scanner = new Html5QrcodeScanner(
-  //     "reader",
-  //     { fps: 10, qrbox: 250 },
-  //     false
-  //   );
-
-  //   scanner.render(
-  //     (decodedAddress) => {
-  //       form.setFieldsValue({ to: decodedAddress });
-  //       form.validateFields(["to"]);
-  //       setScannerUp(false);
-  //       scanner.clear();
-  //     },
-  //     (errorMessage) => {
-  //       logger("info", errorMessage);
-  //     }
-  //   );
-
-  //   return () => {
-  //     scanner.clear().catch(() => {});
-  //   };
-  // }, [scannerUp]);
 
   // todo update with `depositCell.getNervosDaoInfo` when light client js updates ccc core.
   const getNervosDaoInfo = async (depositCell: ccc.Cell):Promise<{depositHeader: ClientBlockHeader}> => {
@@ -294,12 +266,7 @@ const RequestWithdraw: React.FC = () => {
                           <Input
                             value={values?.to}
                             placeholder="Input the destination address"
-                            style={{backgroundColor: "var(--gray-light)"}}
                           />
-                          {/* <Button
-                            onClick={() => setScannerUp(true)}
-                            icon={<ScanOutlined />}
-                          /> */}
                           <Button
                             onClick={() => {
                               setIsRequestToMyAccount(!isRequestToMyAccount);
@@ -365,15 +332,6 @@ const RequestWithdraw: React.FC = () => {
                   }
                 }}
               />
-
-              {/* <Modal
-                open={scannerUp}
-                onCancel={() => setScannerUp(false)}
-                footer={null}
-                title="Scan QR Code"
-              >
-                <div id="reader" style={{ width: "100%" }} />
-              </Modal> */}
             </div>
 
             <div className={styles.requestWithdrawListContainer}>

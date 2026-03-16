@@ -25,8 +25,6 @@ import { cx, formatError, download } from "../../../utils/methods";
 import styles from "./Deposit.module.scss";
 import QuantumPurse from "../../../../core/quantum_purse";
 import { Address, fixedPointFrom } from "@ckb-ccc/core";
-// import { Html5QrcodeScanner } from "html5-qrcode";
-// import { logger } from '../../../../core/logger';
 
 const Deposit: React.FC = () => {
   const [form] = Form.useForm();
@@ -43,7 +41,6 @@ const Deposit: React.FC = () => {
     reject: () => void;
   } | null>(null);
   const [feeRate, setFeeRate] = useState<number | undefined>(undefined);
-  // const [scannerUp, setScannerUp] = useState(false);
   const [isDepositToMyAccount, setIsDepositToMyAccount] = useState(false);
   const [isDepositMax, setIsDepositMax] = useState(false);
   const [isCustomFee, setIsCustomFee] = useState(false);
@@ -98,7 +95,7 @@ const Deposit: React.FC = () => {
     }
   }, [fromAccountBalance, form]);
 
-  // fill amount when deposit max
+  // Fill amount when deposit max
   useEffect(() => {
     if (isDepositMax && fromAccountBalance) {
       const maxAmount = Number(fromAccountBalance) / CKB_DECIMALS;
@@ -107,32 +104,6 @@ const Deposit: React.FC = () => {
       form.setFieldsValue({ amount: undefined });
     }
   }, [isDepositMax, fromAccountBalance]);
-
-  // useEffect(() => {
-  //   if (!scannerUp) return;
-
-  //   const scanner = new Html5QrcodeScanner(
-  //     "reader",
-  //     { fps: 10, qrbox: 250 },
-  //     false
-  //   );
-
-  //   scanner.render(
-  //     (decodedAddress) => {
-  //       form.setFieldsValue({ to: decodedAddress });
-  //       form.validateFields(["to"]);
-  //       setScannerUp(false);
-  //       scanner.clear();
-  //     },
-  //     (errorMessage) => {
-  //       logger("info", errorMessage);
-  //     }
-  //   );
-
-  //   return () => {
-  //     scanner.clear().catch(() => {});
-  //   };
-  // }, [scannerUp]);
 
   // Catch fee rate changes from FeeRateSelect component
   const handleFeeRateChange = (feeRate: number) => {
@@ -166,7 +137,7 @@ const Deposit: React.FC = () => {
         const txId = isDepositMax
           ? await dispatch.wallet.depositAll({to: values.to, feeRate})
           : await dispatch.wallet.deposit({to: values.to, amount: values.amount, feeRate});
-          
+
         Modal.success({
           title: 'Deposit Successful',
           content: (
@@ -216,7 +187,6 @@ const Deposit: React.FC = () => {
 
   return (
     <section className={cx(styles.depositForm, "panel")}>
-      {/* <h1>Deposit</h1> */}
       <div>
         <Form layout="vertical" form={form}>
           <Form.Item
@@ -246,25 +216,21 @@ const Deposit: React.FC = () => {
             ]}
           >
             {!isDepositToMyAccount ? (
-              <Space.Compact style={{ display: "Flex" }}>
+              <Space.Compact style={{ display: "flex" }}>
                 <Input
                   value={values?.to}
                   placeholder="Input the destination address"
                 />
-                {/* <Button
-                  onClick={() => setScannerUp(true)}
-                  icon={<ScanOutlined />}
-                /> */}
                 <Button
                   onClick={() => {
                     setIsDepositToMyAccount(!isDepositToMyAccount);
-                    form.setFieldsValue({ to: undefined }); 
+                    form.setFieldsValue({ to: undefined });
                   }}
                   icon={<DoubleRightOutlined rotate={90} />}
                 />
               </Space.Compact>
             ) : (
-              <Space.Compact style={{ display: "Flex" }}>
+              <Space.Compact style={{ display: "flex" }}>
                 <AccountSelect
                   accounts={wallet.accounts}
                   onAccountChange={(val) => form.setFieldsValue({ to: val })}
@@ -272,7 +238,7 @@ const Deposit: React.FC = () => {
                 <Button
                   onClick={() => {
                     setIsDepositToMyAccount(!isDepositToMyAccount);
-                    form.setFieldsValue({ to: undefined }); 
+                    form.setFieldsValue({ to: undefined });
                   }}
                   icon={<DoubleRightOutlined rotate={270} />}
                 />
@@ -283,7 +249,7 @@ const Deposit: React.FC = () => {
           <Row gutter={10}>
             <Col xs={24} sm={12}>
               <Form.Item
-                className={cx("item-wrapper-with-label")} //using the same class for style consistency
+                className={cx("item-wrapper-with-label")}
                 name="amount"
                 label={
                   <div>
@@ -292,7 +258,6 @@ const Deposit: React.FC = () => {
                 }
                 rules={[
                   { required: true, message: "" },
-                  // { type: "number", min: 114, message: "Deposit amount must be at least 114 CKB" },
                   {
                     validator: (_, value) => {
                       if (
@@ -308,12 +273,11 @@ const Deposit: React.FC = () => {
                   },
                 ]}
               >
-                <Space.Compact style={{ display: "Flex" }}>
+                <Space.Compact style={{ display: "flex" }}>
                   <Input
                     value={values?.amount}
                     placeholder="Enter deposit amount"
                     disabled={isDepositMax}
-                    style={{backgroundColor: "var(--gray-light)"}}
                   />
                   <Button
                     onClick={() => setIsDepositMax(!isDepositMax)}
@@ -335,11 +299,11 @@ const Deposit: React.FC = () => {
                   </div>
                 }
               >
-                <Space.Compact style={{ display: "Flex" }}>
+                <Space.Compact style={{ display: "flex" }}>
                   <div style={{ flex: 1 }}>
                     <FeeRateSelect onFeeRateChange={handleFeeRateChange} custom={isCustomFee} />
                   </div>
-                  <Button 
+                  <Button
                     onClick={() => setIsCustomFee(!isCustomFee)}
                     icon={<SettingFilled />}
                   />
@@ -353,23 +317,21 @@ const Deposit: React.FC = () => {
             label={
               <div>
                 Commands
-                <Tooltip title="Sign & Export allows you to sign the transaction and save it as a file for later broadcasting. Send will sign and broadcast the transaction immediately.">
+                <Tooltip title="Sign & Export allows you to sign the transaction and save it as a file for later broadcasting. Deposit will sign and broadcast the transaction immediately.">
                   <QuestionCircleOutlined style={{ marginLeft: 4 }} />
                 </Tooltip>
               </div>
             }
           >
-            <Flex style={{gap: "0.5rem"}}>
+            <Flex gap="0.5rem">
               <Button
                 onClick={() => handleDeposit(true)}
-                style={{ marginRight: 8, height: "3rem" }}
                 disabled={!submittable || loadingDeposit}
                 className={styles.depositButton}
               >
                 Sign & Export
               </Button>
               <Button
-                // type="primary"
                 onClick={() => handleDeposit(false)}
                 disabled={!submittable || loadingDeposit}
                 loading={loadingDeposit}
@@ -392,14 +354,6 @@ const Deposit: React.FC = () => {
             }
           }}
         />
-        {/* <Modal
-          open={scannerUp}
-          onCancel={() => setScannerUp(false)}
-          footer={null}
-          title="Scan QR Code"
-        >
-          <div id="reader" style={{ width: "100%" }} />
-        </Modal> */}
       </div>
     </section>
   );

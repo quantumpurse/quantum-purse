@@ -76,7 +76,7 @@ const AccountDetail: React.FC<AccountDetailProps> = ({ account }) => {
         {account.address && (
           <QRCodeSVG
             value={account.address}
-            size={235}
+            size={150}
             level="H" // Highest error correction level
           />
         )}

@@ -3,7 +3,7 @@
 
   .feeRateContainer {
     display: flex;
-    border: 1px solid rgba(255, 255, 255, 0.2);
+    border: 0.5px solid rgba(255, 255, 255, 0.12);
     border-radius: 0.5rem;
     overflow: hidden;
   }
@@ -12,27 +12,34 @@
     flex: 1;
     height: 3rem;
     cursor: pointer;
-    transition: all 0.3s ease;
+    transition: all 0.25s ease;
     display: flex;
     align-items: center;
     justify-content: center;
+    background: rgba(255, 255, 255, 0.02);
 
     &:not(:last-child) {
-      border-right: 1px solid var(--gray-03);
+      border-right: 0.5px solid rgba(255, 255, 255, 0.08);
     }
 
     &:hover:not(.selected) {
-      background-color: rgba(255, 255, 255, 0.1);
+      background-color: rgba(255, 255, 255, 0.08);
+
+      .feeName {
+        color: var(--white);
+      }
     }
 
     &.selected {
-      background-color: var(--white);
+      background-color: rgba(0, 158, 167, 0.2);
+      border-color: rgba(0, 158, 167, 0.3);
 
       .feeName {
-        color: #323232;
+        color: var(--teal-2);
+        font-weight: bold;
       }
       .feeValue {
-        color: #d4d4d4;
+        color: var(--gray-01);
       }
     }
   }
@@ -47,25 +54,28 @@
     font-weight: bold;
     font-size: 1.2rem;
     color: var(--gray-02);
+    transition: color 0.25s ease;
   }
 
   .feeValue {
     font-size: 1.2rem;
-    color: #595959;
+    color: var(--gray-03);
   }
 
   .customInputField {
     width: 100%;
     height: 3.2rem;
-    border: 0.5px solid rgba(255, 255, 255, 0.7);
+    border: 0.5px solid rgba(255, 255, 255, 0.12);
     border-radius: 0.5rem;
-    color: var(--black);
+    color: var(--gray-light);
     padding: 4px 11px;
-    background-color: var(--gray-light);
+    background-color: rgba(255, 255, 255, 0.04);
+    transition: border-color 0.25s ease, box-shadow 0.25s ease;
 
     &:focus {
       outline: none;
-      border: 1px solid var(--teal-2);
+      border-color: var(--teal-2);
+      box-shadow: 0 0 0 2px rgba(0, 158, 167, 0.12);
     }
   }
 }

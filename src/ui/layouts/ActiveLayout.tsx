@@ -15,7 +15,7 @@ const ActiveLayout: React.FC<AuthLayoutProps> = ({ ...rest }) => {
   const { global: loadingGlobal } = useSelector(
     (state: RootState) => state.loading
   );
-  const { showSidebar } = useContext(LayoutCtx);
+  const { showSidebar, setShowSidebar } = useContext(LayoutCtx);
 
   if (!wallet.active && !loadingGlobal) {
     return <Navigate to={ROUTES.WELCOME} />;
@@ -23,7 +23,10 @@ const ActiveLayout: React.FC<AuthLayoutProps> = ({ ...rest }) => {
 
   return (
     <Layout className={styles.activeLayout} {...rest}>
-      {showSidebar && <Sidebar />}
+      <Sidebar
+        visible={showSidebar}
+        onClose={() => setShowSidebar(false)}
+      />
       <Outlet />
     </Layout>
   );

@@ -47,7 +47,7 @@ function testnetToMainnet() {
 function createWindow() {
     const mainWindow = new BrowserWindow({
         width: 905,
-        height: 650,
+        height: 540,
         webPreferences: {
             nodeIntegration: false,
             contextIsolation: true,
@@ -56,8 +56,8 @@ function createWindow() {
         },
     });
 
-    mainWindow.setMinimumSize(905, 650);
-    mainWindow.setMaximumSize(905, 650);
+    mainWindow.setMinimumSize(400, 540);
+    // mainWindow.setMaximumSize(905, 650);
     mainWindow.loadFile(path.join(__dirname, 'dist', 'index.html'));
 
     mainWindow.webContents.on('will-navigate', (event, navigationUrl) => {

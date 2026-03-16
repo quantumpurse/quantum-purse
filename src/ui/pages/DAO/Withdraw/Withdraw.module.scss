@@ -1,16 +1,25 @@
 .withdrawForm {
   :global {
-    height: 50rem;
+    height: 40rem;
     background: rgba(255, 255, 255, 0.02);
     backdrop-filter: blur(12px);
 
     .ant-form-item {
       padding: 1rem;
       border: none;
-      border-radius: 1rem;
+      border-radius: 0.8rem;
       background: rgba(255, 255, 255, 0.03);
       backdrop-filter: blur(12px);
-      
+      border: 0.5px solid rgba(255, 255, 255, 0.06);
+      box-shadow:
+        0 2px 8px rgba(0, 0, 0, 0.15),
+        inset 0 1px 0 rgba(255, 255, 255, 0.03);
+      transition: border-color 0.3s ease;
+
+      &:hover {
+        border-color: rgba(255, 255, 255, 0.1);
+      }
+
       &.select-my-account {
         .ant-select-selector {
           min-height: 3rem;
@@ -26,6 +35,7 @@
           width: 100%;
           font-size: small;
           font-weight: bold;
+          letter-spacing: 0.04em;
         }
       }
 
@@ -35,14 +45,82 @@
     }
 
     .ant-btn:disabled {
-      color: var(--gray-02) !important;
+      color: var(--gray-03) !important;
+      background: rgba(255, 255, 255, 0.02) !important;
+      border-color: rgba(255, 255, 255, 0.06) !important;
+    }
+
+    // Unify input styling.
+    .ant-input {
+      background-color: rgba(255, 255, 255, 0.04) !important;
+      border: 0.5px solid rgba(255, 255, 255, 0.12);
+      color: var(--gray-light) !important;
+      transition: border-color 0.25s ease, box-shadow 0.25s ease;
+
+      &:hover:not(:disabled) {
+        border-color: rgba(255, 255, 255, 0.25);
+      }
+
+      &:focus {
+        border-color: var(--teal-2);
+        box-shadow: 0 0 0 2px rgba(0, 158, 167, 0.12);
+      }
+    }
+
+    // Compact group buttons.
+    .ant-space-compact .ant-btn {
+      background: rgba(255, 255, 255, 0.04);
+      border: 0.5px solid rgba(255, 255, 255, 0.12);
+      color: var(--gray-01);
+      transition: all 0.25s ease;
+
+      &:hover:not(:disabled) {
+        background: rgba(255, 255, 255, 0.1);
+        border-color: rgba(255, 255, 255, 0.2);
+        color: var(--white);
+      }
+    }
+
+    @media (max-width: 768px) {
+      .ant-form-item {
+        padding: 0.6rem;
+        border-radius: 0.6rem;
+        margin-bottom: 1rem;
+
+        &.item-wrapper-with-label {
+          label {
+            font-size: x-small;
+            letter-spacing: 0.02em;
+          }
+        }
+      }
+
+      .ant-input {
+        font-size: 1.2rem !important;
+      }
     }
   }
 }
 
 .withdrawListContainer {
   overflow-y: auto;
-  max-height: 37rem; // tuned w/o exact calculation, adjust as needed
+  max-height: 37rem;
+
+  // Refined scrollbar.
+  &::-webkit-scrollbar {
+    width: 3px;
+  }
+  &::-webkit-scrollbar-track {
+    background: transparent;
+  }
+  &::-webkit-scrollbar-thumb {
+    background: rgba(255, 255, 255, 0.08);
+    border-radius: 2px;
+  }
+  &::-webkit-scrollbar-thumb:hover {
+    background: rgba(255, 255, 255, 0.15);
+  }
+
   @media (max-width: 768px) {
     max-height: 31rem;
     margin-top: 0;
@@ -53,9 +131,14 @@
   height: 100%;
   margin: 5rem;
   align-content: center;
-  border: 0.5px solid var(--gray-light);
-  border-radius: 1rem;
+  border: 0.5px solid rgba(255, 255, 255, 0.1);
+  border-radius: 0.8rem;
   padding: 5rem;
+
+  @media (max-width: 768px) {
+    margin: 2rem;
+    padding: 2rem;
+  }
 }
 
 .withdrawList {
@@ -65,10 +148,16 @@
 
 .withdrawItem {
   position: relative;
-  background-color: rgba(255, 255, 255, 0.05);
-  border-radius: 1rem;
-  margin-bottom: 1rem;
+  background-color: rgba(255, 255, 255, 0.03);
+  border: 0.5px solid rgba(255, 255, 255, 0.06);
+  border-radius: 0.8rem;
+  margin-bottom: 0.8rem;
   overflow: hidden;
+  transition: border-color 0.3s ease;
+
+  &:hover {
+    border-color: rgba(255, 255, 255, 0.12);
+  }
 }
 
 .progressBackground {
@@ -76,8 +165,9 @@
   top: 0;
   left: 0;
   height: 100%;
-  background-image: repeating-linear-gradient(45deg, #333 0px, #333 10px, #444 10px, #444 20px);
+  background: linear-gradient(90deg, rgba(0, 107, 113, 0.15), rgba(0, 158, 167, 0.08));
   z-index: 0;
+  transition: width 0.5s ease;
 }
 
 .content {
@@ -86,7 +176,7 @@
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 0.2rem 1.6rem;
+  padding: 0.6rem 1.6rem;
   color: var(--gray-01);
   @media (max-width: 768px) {
     padding: 0.6rem 0.4rem;
@@ -97,29 +187,45 @@
   display: flex;
   flex-direction: column;
   color: var(--gray-01);
-  
+  gap: 0.1rem;
+
   > div {
     font-size: 1.2rem;
   }
-  
+
   > div:first-child {
     font-weight: bold;
     font-size: 1.4rem;
+    color: var(--gray-light);
+  }
+
+  @media (max-width: 768px) {
+    > div {
+      font-size: 1rem;
+    }
+    > div:first-child {
+      font-size: 1.2rem;
+    }
   }
 }
 
 .buttons {
   font-size: smaller;
-  border: 0.5px solid var(--teal-2) !important;
+  border: 0.5px solid rgba(0, 158, 167, 0.3) !important;
+  background: rgba(0, 158, 167, 0.12) !important;
+  color: var(--teal-2) !important;
   cursor: pointer;
-  transition: background-color 0.2s ease;
+  transition: all 0.25s ease;
 
-  &:hover {
-    background-color: rgba(0, 0, 0, 0.05);
+  &:hover:not(:disabled) {
+    background: rgba(0, 158, 167, 0.2) !important;
+    border-color: rgba(0, 158, 167, 0.5) !important;
+    color: var(--white) !important;
   }
 
-  &:active {
-    background-color: rgba(0, 0, 0, 0.1);
+  &:disabled {
+    opacity: 0.4;
+    cursor: not-allowed;
   }
 }
 

@@ -6,62 +6,168 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 1.2rem;
-  height: 11rem;
+  gap: 0.6rem;
+  padding: 0.8rem 1.2rem;
+  height: 10rem;
   background: rgba(255, 255, 255, 0.02);
   backdrop-filter: blur(12px);
-
   border-radius: 0.5rem;
   width: 100%;
   max-width: 128rem;
   margin: 0 auto 0.7rem auto;
   box-shadow: 0 0.4rem 1.2rem rgba(0, 0, 0, 0.25);
+
   @media (max-width: 768px) {
     margin: 2px auto;
+    height: auto;
+    padding: 0.6rem;
+    gap: 0.3rem;
   }
 }
 
 .copyable {
   width: fit-content;
-  padding: 0.4rem;
+  padding: 0.2rem 0.4rem;
   border-radius: 0.4rem;
-  transition: all 0.3s ease;
+  transition: color 0.25s ease;
   cursor: pointer;
-  // background-color: rgba(123, 134, 152, 0.1);
+
   &:hover {
-    color: rgb(136, 98, 2);
+    color: var(--teal-2);
   }
 }
 
 .statusSection {
   display: flex;
   align-items: center;
+  position: relative;
   background: rgba(36, 38, 37, 0.2);
-  backdrop-filter: blur(12px);
-  border-radius: 1rem;
-  padding: 0.2rem 1rem;
-  border: 0.5px solid rgba(255, 255, 255, 0.1);
-  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+  backdrop-filter: blur(16px);
+  border-radius: 0.8rem;
+  padding: 0.2rem 1rem 0.2rem 0.5rem;
+  border: 0.5px solid rgba(255, 255, 255, 0.06);
+  box-shadow:
+    0 2px 8px rgba(0, 0, 0, 0.2),
+    inset 0 1px 0 rgba(255, 255, 255, 0.04);
+  transition: border-color 0.4s ease, box-shadow 0.4s ease;
+
+  &:hover {
+    border-color: rgba(255, 255, 255, 0.12);
+    box-shadow:
+      0 4px 16px rgba(0, 0, 0, 0.3),
+      inset 0 1px 0 rgba(255, 255, 255, 0.06);
+  }
+
+  @media (max-width: 768px) {
+    padding: 0.2rem;
+    border-radius: 0.6rem;
+  }
+}
+
+// Accent-colored top edge for each status card.
+.accentBalance {
+  &::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 1.2rem;
+    right: 1.2rem;
+    height: 1px;
+    background: linear-gradient(90deg, transparent, #00B27A, transparent);
+    opacity: 0.6;
+  }
+}
+
+.accentSync {
+  &::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 1.2rem;
+    right: 1.2rem;
+    height: 1px;
+    background: linear-gradient(90deg, transparent, #2196F3, transparent);
+    opacity: 0.6;
+  }
+}
+
+.accentPeers {
+  &::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 1.2rem;
+    right: 1.2rem;
+    height: 1px;
+    background: linear-gradient(90deg, transparent, #9C27B0, transparent);
+    opacity: 0.6;
+  }
 }
 
 .statusDetails {
   display: flex;
   flex-direction: column;
-  font-size: 1.2rem;
+  font-size: 1.15rem;
   color: var(--gray-01);
-  // gap: 0.75rem;
+  gap: 0.2rem;
   margin-left: 0.5rem;
+  letter-spacing: 0.02em;
+  line-height: 1.5;
+}
+
+.statusLabel {
+  font-size: 1rem;
+  color: var(--gray-02);
+  letter-spacing: 0.08em;
+  margin-bottom: 0.1rem;
+}
+
+.statusValue {
+  color: var(--gray-light);
+  font-weight: 400;
+}
+
+.networkBadge {
+  font-size: 0.95rem;
+  letter-spacing: 0.1em;
+  color: var(--teal-2);
+  font-weight: 700;
+  margin-bottom: 0.15rem;
 }
 
 .updating {
-  animation: pulse 1s infinite alternate;
+  animation: pulse 1.2s ease-in-out infinite alternate;
 }
 
 @keyframes pulse {
   0% {
-    border: 0.5px solid rgba(255, 255, 255, 1);
+    border-color: rgba(255, 255, 255, 0.35);
+    box-shadow:
+      0 2px 8px rgba(0, 0, 0, 0.2),
+      0 0 12px rgba(255, 255, 255, 0.05);
   }
   100% {
-    border: 0.5px solid rgba(0, 0, 0, 0.1);
+    border-color: rgba(255, 255, 255, 0.06);
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+  }
+}
+
+.menuButton {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 3.6rem;
+  height: 3.6rem;
+  border-radius: 0.6rem;
+  border: 0.5px solid rgba(255, 255, 255, 0.1);
+  background: rgba(255, 255, 255, 0.04);
+  color: var(--white);
+  cursor: pointer;
+  transition: all 0.25s ease;
+  flex-shrink: 0;
+
+  &:hover {
+    border-color: rgba(255, 255, 255, 0.2);
+    background: rgba(255, 255, 255, 0.08);
   }
 }

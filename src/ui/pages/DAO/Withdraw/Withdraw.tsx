@@ -10,7 +10,6 @@ import QuantumPurse from "../../../../core/quantum_purse";
 import { ccc, ClientBlockHeader, Hex } from "@ckb-ccc/core";
 import { NERVOS_DAO } from "../../../../core/config";
 import { parseEpoch, getClaimEpoch, getProfit } from "../../../../core/epoch";
-// import { Html5QrcodeScanner } from "html5-qrcode";
 import { logger } from '../../../../core/logger';
 
 const Withdraw: React.FC = () => {
@@ -32,7 +31,6 @@ const Withdraw: React.FC = () => {
       blockNum: bigint;
     };
   }>({});
-  // const [scannerUp, setScannerUp] = useState(false);
   const [isWithdrawToMyAccount, setIsWithdrawToMyAccount] = useState(false);
   const [isCustomFee, setIsCustomFee] = useState(false);
   const [isAuthenticating, setIsAuthenticating] = useState(false);
@@ -117,32 +115,6 @@ const Withdraw: React.FC = () => {
       };
     }
   }, [quantumPurse]);
-
-  // useEffect(() => {
-  //   if (!scannerUp) return;
-
-  //   const scanner = new Html5QrcodeScanner(
-  //     "reader",
-  //     { fps: 10, qrbox: 250 },
-  //     false
-  //   );
-
-  //   scanner.render(
-  //     (decodedAddress) => {
-  //       form.setFieldsValue({ to: decodedAddress });
-  //       form.validateFields(["to"]);
-  //       setScannerUp(false);
-  //       scanner.clear();
-  //     },
-  //     (errorMessage) => {
-  //       logger("info", errorMessage);
-  //     }
-  //   );
-
-  //   return () => {
-  //     scanner.clear().catch(() => {});
-  //   };
-  // }, [scannerUp]);
 
   const calculateRemainingDays = async(
     depositHeader: ClientBlockHeader,
@@ -277,7 +249,6 @@ const Withdraw: React.FC = () => {
 
   return (
     <section className={cx(styles.withdrawForm, "panel")}>
-      {/* <h1>Withdraw</h1> */}
       <div>
         {(withdrawRequestCells.length > 0 && Object.keys(redeemingInfos).length !== 0) ? (
           <>
@@ -316,12 +287,7 @@ const Withdraw: React.FC = () => {
                           <Input
                             value={values?.to}
                             placeholder="Input the destination address"
-                            style={{backgroundColor: "var(--gray-light)"}}
                           />
-                          {/* <Button
-                            onClick={() => setScannerUp(true)}
-                            icon={<ScanOutlined />}
-                          /> */}
                           <Button
                             onClick={() => {
                               setIsWithdrawToMyAccount(!isWithdrawToMyAccount);
@@ -389,14 +355,6 @@ const Withdraw: React.FC = () => {
                 }}
               />
 
-              {/* <Modal
-                open={scannerUp}
-                onCancel={() => setScannerUp(false)}
-                footer={null}
-                title="Scan QR Code"
-              >
-                <div id="reader" style={{ width: "100%" }} />
-              </Modal> */}
             </div>
 
             <div className={styles.withdrawListContainer}>
@@ -424,7 +382,7 @@ const Withdraw: React.FC = () => {
                             <div>{(Number(BigInt(cell.cellOutput.capacity)) / 10**8).toFixed(2)} CKB</div>
                             <div>+ {(profit/10**8).toFixed(5)} CKB </div>
                             <div>
-                              {remain > 0 ? `Withdrawable in ${Number(remain.toFixed(1))} days` : <span style={{ color: 'green' }}>Withdrawable now!</span>}
+                              {remain > 0 ? `Withdrawable in ${Number(remain.toFixed(1))} days` : <span style={{ color: 'var(--teal-2)' }}>Withdrawable now!</span>}
                             </div>
                           </span>
                           <div

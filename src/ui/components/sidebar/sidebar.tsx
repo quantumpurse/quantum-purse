@@ -95,8 +95,12 @@ const getDefaultOpenKeys = (pathname: string, items: MenuItem[]): string[] => {
   return [];
 };
 
-interface SidebarProps extends React.HTMLAttributes<HTMLDivElement> {}
-const Sidebar: React.FC<SidebarProps> = () => {
+interface SidebarProps extends React.HTMLAttributes<HTMLDivElement> {
+  visible?: boolean;
+  onClose?: () => void;
+}
+
+const Sidebar: React.FC<SidebarProps> = ({ visible, onClose }) => {
   const location = useLocation();
   const defaultOpenKeys = getDefaultOpenKeys(location.pathname, items);
   const wallet = useSelector((state: RootState) => state.wallet);
@@ -104,22 +108,29 @@ const Sidebar: React.FC<SidebarProps> = () => {
   const screens = useBreakpoint();
 
   return (
-    <nav className={cx(styles.sidebar)}>
-      {!screens.md && (
-        <CurrentAccount
-          address={wallet.current.address!}
-          name={wallet.current.name}
-          balance={wallet.current.balance!}
-          lockedInDao={wallet.current.lockedInDao}
-        />
-      )}
-      <Menu
-        mode="inline"
-        items={items}
-        defaultSelectedKeys={[location.pathname]}
-        defaultOpenKeys={defaultOpenKeys}
+    <>
+      {/* Backdrop for mobile drawer. */}
+      <div
+        className={cx(styles.backdrop, visible && styles.visible)}
+        onClick={onClose}
       />
-    </nav>
+      <nav className={cx(styles.sidebar, visible && styles.visible)}>
+        {!screens.md && (
+          <CurrentAccount
+            address={wallet.current.address!}
+            name={wallet.current.name}
+            balance={wallet.current.balance!}
+            lockedInDao={wallet.current.lockedInDao}
+          />
+        )}
+        <Menu
+          mode="inline"
+          items={items}
+          defaultSelectedKeys={[location.pathname]}
+          defaultOpenKeys={defaultOpenKeys}
+        />
+      </nav>
+    </>
   );
 };
 

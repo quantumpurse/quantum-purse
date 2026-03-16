@@ -5,34 +5,66 @@
   padding-top: 2rem;
   color: var(--teal-2);
   border-radius: 0.5rem;
-  @media (min-width: 768px) {
-    height: 50rem;
-  }
-  @media (max-width: 768px) {
-    background: rgb(29,29,29);
-  }
-  
+
   :global(.ant-menu) {
-    background-color: rgb(29, 29, 29);
     @media (min-width: 768px) {
       flex-basis: 20rem;
       background: transparent;
     }
+    @media (max-width: 768px) {
+      background: transparent;
+    }
   }
 
-  @media (max-width: 768px) {
-    position: absolute;
-    left: 0;
-    right: 0;
-    z-index: 1000;
-    max-width: 30rem;
-    margin: 2rem auto;
-    box-shadow: 0 0.4rem 1.2rem rgba(255, 255, 255, 0.25);
-  }
-
+  // Desktop: static sidebar.
   @media (min-width: 768px) {
+    height: 40rem;
     flex-basis: 20rem;
     background: rgba(255, 255, 255, 0.02);
     backdrop-filter: blur(12px);
+  }
+
+  // Mobile: fixed slide-in drawer.
+  @media (max-width: 768px) {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 26rem;
+    height: 100vh;
+    z-index: 1001;
+    padding-top: 3rem;
+    background: rgba(18, 18, 18, 0.96);
+    backdrop-filter: blur(20px);
+    border-right: 0.5px solid rgba(255, 255, 255, 0.08);
+    border-radius: 0;
+    box-shadow: 4px 0 24px rgba(0, 0, 0, 0.5);
+    transform: translateX(-100%);
+    transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+
+    &.visible {
+      transform: translateX(0);
+    }
+  }
+}
+
+// Mobile backdrop overlay.
+.backdrop {
+  display: none;
+
+  @media (max-width: 768px) {
+    display: block;
+    position: fixed;
+    inset: 0;
+    z-index: 1000;
+    background: rgba(0, 0, 0, 0.45);
+    backdrop-filter: blur(2px);
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.3s ease;
+
+    &.visible {
+      opacity: 1;
+      pointer-events: auto;
+    }
   }
 }

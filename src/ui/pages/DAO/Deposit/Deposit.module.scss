@@ -1,19 +1,28 @@
 .depositForm {
   :global {
-    height: 50rem;
+    height: 40rem;
     background: rgba(255, 255, 255, 0.02);
     backdrop-filter: blur(12px);
     padding-top: 3.5rem;
     .ant-form {
       background: transparent !important;
     }
-    
+
     .ant-form-item {
       border: none;
-      border-radius: 1rem;
+      border-radius: 0.8rem;
       background: rgba(255, 255, 255, 0.03);
       backdrop-filter: blur(12px);
-      
+      border: 0.5px solid rgba(255, 255, 255, 0.06);
+      box-shadow:
+        0 2px 8px rgba(0, 0, 0, 0.15),
+        inset 0 1px 0 rgba(255, 255, 255, 0.03);
+      transition: border-color 0.3s ease;
+
+      &:hover {
+        border-color: rgba(255, 255, 255, 0.1);
+      }
+
       &.select-my-account {
         .ant-select-selector {
           min-height: 3rem;
@@ -30,6 +39,7 @@
           width: 100%;
           font-size: small;
           font-weight: bold;
+          letter-spacing: 0.04em;
         }
       }
 
@@ -38,31 +48,123 @@
       }
 
       .ant-btn:disabled {
+        color: var(--gray-03) !important;
+        background: rgba(255, 255, 255, 0.02) !important;
+        border-color: rgba(255, 255, 255, 0.06) !important;
+      }
+    }
+
+    @media (max-width: 768px) {
+      padding-top: 2rem;
+
+      .ant-form-item {
+        border-radius: 0.6rem;
+        margin-bottom: 1rem;
+
+        &.item-wrapper-with-label {
+          padding: 0.6rem 1rem 1.2rem 1rem;
+          label {
+            font-size: x-small;
+            letter-spacing: 0.02em;
+          }
+        }
+      }
+
+      .ant-input {
+        font-size: 1.2rem !important;
+      }
+    }
+
+    // Unify input styling within the deposit form.
+    .ant-input {
+      background-color: rgba(255, 255, 255, 0.04) !important;
+      border: 0.5px solid rgba(255, 255, 255, 0.12);
+      color: var(--gray-light) !important;
+      transition: border-color 0.25s ease, box-shadow 0.25s ease;
+
+      &:hover:not(:disabled) {
+        border-color: rgba(255, 255, 255, 0.25);
+      }
+
+      &:focus {
+        border-color: var(--teal-2);
+        box-shadow: 0 0 0 2px rgba(0, 158, 167, 0.12);
+      }
+
+      &:disabled {
+        background-color: rgba(255, 255, 255, 0.02) !important;
         color: var(--gray-02) !important;
+        border-color: rgba(255, 255, 255, 0.06);
+        cursor: not-allowed;
+      }
+    }
+
+    // Compact group buttons (toggle buttons beside inputs).
+    .ant-space-compact .ant-btn:not(.depositButton) {
+      background: rgba(255, 255, 255, 0.04);
+      border: 0.5px solid rgba(255, 255, 255, 0.12);
+      color: var(--gray-01);
+      transition: all 0.25s ease;
+
+      &:hover:not(:disabled) {
+        background: rgba(255, 255, 255, 0.1);
+        border-color: rgba(255, 255, 255, 0.2);
+        color: var(--white);
       }
     }
   }
 }
 
 .depositButton {
-  height: 3rem;
+  height: 3.6rem;
   width: 100%;
-  border: 0.5px solid var(--gray-01) !important;
-  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.5);
-  transition: box-shadow 0.15s ease, transform 0.1s ease;
+  border-radius: 0.5rem;
+  font-weight: 600;
+  font-size: 1.3rem;
+  letter-spacing: 0.06em;
 
-  &:hover {
-    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.3);
-    color: var(--black) !important;
+  @media (max-width: 768px) {
+    height: 3rem;
+    font-size: 1.1rem;
+    letter-spacing: 0.03em;
+  }
+  border: 0.5px solid rgba(255, 255, 255, 0.1) !important;
+  background: rgba(255, 255, 255, 0.04) !important;
+  color: var(--gray-01) !important;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+  transition: all 0.25s ease;
+
+  &:hover:not(:disabled) {
+    background: rgba(255, 255, 255, 0.08) !important;
+    border-color: rgba(255, 255, 255, 0.2) !important;
+    color: var(--white) !important;
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.3);
   }
 
-  &:active {
-    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.25);
+  &:active:not(:disabled) {
+    box-shadow: 0 1px 4px rgba(0, 0, 0, 0.25);
     transform: translateY(1px);
+  }
+
+  &:disabled {
+    opacity: 0.4;
+    cursor: not-allowed;
   }
 }
 
+// The primary "Deposit" button gets the teal accent treatment.
 button.depositButton:not([disabled]):not(.ant-btn-loading) {
   background: var(--teal-2) !important;
-  border: 0.5px solid var(--black) !important;
+  border-color: var(--teal-1) !important;
+  color: var(--white) !important;
+  box-shadow:
+    0 2px 8px rgba(0, 0, 0, 0.3),
+    0 0 16px rgba(0, 158, 167, 0.1);
+
+  &:hover {
+    background: var(--teal-1) !important;
+    box-shadow:
+      0 4px 16px rgba(0, 0, 0, 0.35),
+      0 0 24px rgba(0, 158, 167, 0.15);
+  }
 }

@@ -151,9 +151,82 @@ html {
 
 body {
   margin: 0;
-  /* background-color: rgb(24, 24, 24); */
-  background-image: url('./assets/background.jpg');
-  background-size: cover;
+  background-color: #0a0a0a;
+  /* Lattice dot pattern — evokes the hash-based lattice structures of SPHINCS+. */
+  background-image: radial-gradient(circle, rgba(0, 158, 167, 0.07) 1px, transparent 1px);
+  background-size: 32px 32px;
+  min-height: 100vh;
+  position: relative;
+  overflow-x: hidden;
+}
+
+/* Quantum interference orbs — slow-drifting luminous gradients
+   that mimic quantum wave superposition patterns. */
+body::before,
+body::after {
+  content: '';
+  position: fixed;
+  border-radius: 50%;
+  pointer-events: none;
+  filter: blur(80px);
+  z-index: -1;
+  will-change: transform, opacity;
+}
+
+body::before {
+  width: 800px;
+  height: 800px;
+  top: -10%;
+  left: -10%;
+  background: radial-gradient(circle, rgba(0, 107, 113, 0.2) 0%, transparent 70%);
+  animation: quantumDrift1 45s ease-in-out infinite alternate;
+}
+
+body::after {
+  width: 700px;
+  height: 700px;
+  bottom: -5%;
+  right: -5%;
+  background: radial-gradient(circle, rgba(0, 158, 167, 0.15) 0%, transparent 70%);
+  animation: quantumDrift2 55s ease-in-out infinite alternate;
+}
+
+@keyframes quantumDrift1 {
+  0% {
+    transform: translate(0, 0) scale(1);
+    opacity: 0.6;
+  }
+  33% {
+    transform: translate(15vw, 20vh) scale(1.2);
+    opacity: 1;
+  }
+  66% {
+    transform: translate(5vw, 50vh) scale(0.9);
+    opacity: 0.7;
+  }
+  100% {
+    transform: translate(25vw, 10vh) scale(1.1);
+    opacity: 0.8;
+  }
+}
+
+@keyframes quantumDrift2 {
+  0% {
+    transform: translate(0, 0) scale(1);
+    opacity: 0.5;
+  }
+  33% {
+    transform: translate(-10vw, -15vh) scale(1.15);
+    opacity: 0.9;
+  }
+  66% {
+    transform: translate(-20vw, -30vh) scale(0.85);
+    opacity: 0.6;
+  }
+  100% {
+    transform: translate(-5vw, -45vh) scale(1.05);
+    opacity: 0.7;
+  }
 }
 
 :root {
@@ -259,6 +332,29 @@ body {
 
 .ant-menu-item-selected svg path {
   fill: var(--black);
+}
+
+/* Mobile menu: glass hover instead of opaque gray-light. */
+@media (max-width: 768px) {
+  .ant-menu-item:hover,
+  .ant-menu-submenu-title:hover {
+    background-color: rgba(255, 255, 255, 0.08) !important;
+    color: var(--white) !important;
+  }
+
+  .ant-menu-item:hover svg path,
+  .ant-menu-submenu:hover .ant-menu-submenu-title svg path {
+    fill: var(--white);
+  }
+
+  .ant-menu-item-selected {
+    background-color: rgba(0, 158, 167, 0.15) !important;
+    color: var(--teal-2) !important;
+  }
+
+  .ant-menu-item-selected svg path {
+    fill: var(--teal-2);
+  }
 }
 
 /* Menu divider */
