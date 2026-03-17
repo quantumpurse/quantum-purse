@@ -1,3 +1,24 @@
+/* ═══════════════════════════════════════════════════════════════════
+   QUANTUM ENTANGLEMENT BACKGROUND
+   ═══════════════════════════════════════════════════════════════════
+
+   Conceptual model:
+   ─ Two entangled particle-pairs drift across the viewport.
+   ─ Each pair shares a wavefunction: when one contracts, its partner
+     expands (anti-correlated scaling). Their opacity pulses in
+     perfect phase opposition, mimicking quantum superposition.
+   ─ Correlation threads (SVG-free, pure CSS border gradients on
+     pseudo-elements) arc between each pair — they visually connect
+     particles even at large separation.
+   ─ A probability-density field (radial + angular) replaces the
+     plain dot lattice, suggesting where particles are "likely" to be
+     found before measurement.
+   ─ A Bell-state shimmer fires periodically to suggest wavefunction
+     collapse — a full-bleed coherence burst that fades out.
+   ─ Spin markers: two tiny fixed pseudo-elements that spin in
+     opposite directions, symbolising spin-up / spin-down entanglement.
+   ═══════════════════════════════════════════════════════════════════ */
+
 @font-face {
   font-family: 'Sora';
   src: url('./assets/fonts/Sora/static/Sora-Regular.ttf') format('truetype');
@@ -14,349 +35,564 @@
   font-display: swap;
 }
 
-html,
-body,
-div,
-span,
-applet,
-object,
-iframe,
-h1,
-h2,
-h3,
-h4,
-h5,
-h6,
-p,
-blockquote,
-pre,
-a,
-abbr,
-acronym,
-address,
-big,
-cite,
-code,
-del,
-dfn,
-em,
-img,
-ins,
-kbd,
-q,
-s,
-samp,
-small,
-strike,
-strong,
-sub,
-sup,
-tt,
-var,
-b,
-u,
-i,
-center,
-dl,
-dt,
-dd,
-ol,
-ul,
-li,
-fieldset,
-form,
-label,
-legend,
-table,
-caption,
-tbody,
-tfoot,
-thead,
-tr,
-th,
-td,
-article,
-aside,
-canvas,
-details,
-embed,
-figure,
-figcaption,
-footer,
-header,
-hgroup,
-menu,
-nav,
-output,
-ruby,
-section,
-summary,
-time,
-mark,
-audio,
-video {
-  margin: 0;
-  padding: 0;
-  border: 0;
-  vertical-align: baseline;
+/* ── CSS Reset ──────────────────────────────────────────────────── */
+html, body, div, span, applet, object, iframe,
+h1, h2, h3, h4, h5, h6, p, blockquote, pre,
+a, abbr, acronym, address, big, cite, code,
+del, dfn, em, img, ins, kbd, q, s, samp,
+small, strike, strong, sub, sup, tt, var,
+b, u, i, center, dl, dt, dd, ol, ul, li,
+fieldset, form, label, legend, table, caption,
+tbody, tfoot, thead, tr, th, td,
+article, aside, canvas, details, embed,
+figure, figcaption, footer, header, hgroup,
+menu, nav, output, ruby, section, summary,
+time, mark, audio, video {
+  margin: 0; padding: 0; border: 0; vertical-align: baseline;
+}
+article, aside, details, figcaption, figure,
+footer, header, hgroup, menu, nav, section { display: block; }
+body          { line-height: 1; }
+ol, ul        { list-style: none; }
+blockquote, q { quotes: none; }
+blockquote:before, blockquote:after,
+q:before, q:after { content: ''; content: none; }
+table         { border-collapse: collapse; border-spacing: 0; }
+
+/* ── Design tokens ──────────────────────────────────────────────── */
+:root {
+  --teal-1:     #006B71;
+  --teal-2:     #009EA7;
+  --cyan-1:     #00D5E1;
+  --cyan-2:     #3FF5FF;
+  --cyan-3:     #C8FCFF;
+  --gray-light: #D9D9D9;
+  --gray-01:    #ABABAB;
+  --gray-02:    #868A93;
+  --gray-03:    #5E6674;
+  --white:      #f5f5f5;
+  --white-abs:  #fff;
+  --black:      #2E2E2E;
+  --black-abs:  #000;
+
+  /* Quantum palette */
+  --q-deep:    rgba(0,  107, 113, 1);
+  --q-mid:     rgba(0,  158, 167, 1);
+  --q-bright:  rgba(0,  213, 225, 1);
+  --q-flash:   rgba(63, 245, 255, 1);
 }
 
-/* HTML5 display-role reset for older browsers */
-article,
-aside,
-details,
-figcaption,
-figure,
-footer,
-header,
-hgroup,
-menu,
-nav,
-section {
-  display: block;
-}
-
-body {
-  line-height: 1;
-}
-
-ol,
-ul {
-  list-style: none;
-}
-
-blockquote,
-q {
-  quotes: none;
-}
-
-blockquote:before,
-blockquote:after,
-q:before,
-q:after {
-  content: '';
-  content: none;
-}
-
-table {
-  border-collapse: collapse;
-  border-spacing: 0;
-}
-
+/* ── Base ───────────────────────────────────────────────────────── */
 html {
   font-size: 62.5%;
   font-family: 'Sora', sans-serif;
   color: var(--black);
 }
 
+/* ═══════════════════════════════════════════════════════════════════
+   BODY — PROBABILITY-DENSITY LATTICE
+   Instead of a uniform dot grid, we layer three grids at different
+   scales and opacities to simulate the density envelope of a
+   two-particle wavefunction (denser near centre, sparse at edges).
+   ═══════════════════════════════════════════════════════════════════ */
 body {
   margin: 0;
-  background-color: #0a0a0a;
-  /* Lattice dot pattern — evokes the hash-based lattice structures of SPHINCS+. */
-  background-image: radial-gradient(circle, rgba(0, 158, 167, 0.07) 1px, transparent 1px);
-  background-size: 32px 32px;
+  background-color: #050d0e;   /* deeper teal-black for richer field */
   min-height: 100vh;
   position: relative;
   overflow-x: hidden;
+
+  /* ── Probability lattice (three superimposed grids) ── */
+
+  /* Layer 1 — tight, dim: high-frequency fluctuations */
+  /* Layer 2 — medium, slightly brighter: coherence length scale */
+  /* Layer 3 — coarse, faint: long-range correlations */
+  background-image:
+    radial-gradient(circle, rgba(0, 213, 225, 0.055) 1px, transparent 1px),
+    radial-gradient(circle, rgba(0, 158, 167, 0.045) 1px, transparent 1px),
+    radial-gradient(circle, rgba(0, 107, 113, 0.030) 1.5px, transparent 1.5px);
+
+  background-size:
+    18px 18px,
+    36px 36px,
+    72px 72px;
+
+  /* Offset the grids so their nodes don't overlap — creates a
+     quasi-crystalline moiré that is visually distinct from a simple
+     uniform pattern */
+  background-position:
+    0 0,
+    9px 9px,
+    27px 27px;
 }
 
-/* ─────────────────────────────────────────────────────────────────
-   Quantum interference orbs
-   5 drift bodies + 2 interference rings + a shimmer veil.
+/* ═══════════════════════════════════════════════════════════════════
+   ENTANGLED PARTICLE SYSTEM
+   ───────────────────────────────────────────────────────────────────
+   Four particle blobs in two entangled pairs:
 
-   Orbs 1–2 : large slow primaries (existing, extended keyframe curve)
-   Orb  3   : mid-sized rotator — mimics a third quantum node
-   Orb  4   : small fast accent — tight high-frequency oscillation
-   Rings    : borderline halos that simulate wave-front interference
-   Shimmer  : full-bleed screen-blend pulse for wave-collapse flash
-   ───────────────────────────────────────────────────────────────── */
+   Pair A — orbs 1 & 2 (body::before / body::after)
+     · They drift on mirrored trajectories.
+     · When orb-1 scales up → orb-2 scales down (anti-correlated).
+     · Their opacity oscillates in opposite phase.
+
+   Pair B — .eq-b1 / .eq-b2
+     · Similar anti-correlation, different period (incommensurable
+       with Pair A to prevent visual locking).
+     · Smaller, faster — represent a higher-energy entangled state.
+
+   The correlation between pairs is intentionally imperfect —
+   particles are entangled within a pair, not between pairs.
+   ═══════════════════════════════════════════════════════════════════ */
 
 body::before,
-body::after {
+body::after,
+.eq-b1,
+.eq-b2,
+.eq-cord-a,
+.eq-cord-b,
+.eq-spin-up,
+.eq-spin-down,
+.eq-decohere,
+.eq-field-a,
+.eq-field-b {
   content: '';
   position: fixed;
-  border-radius: 50%;
   pointer-events: none;
   z-index: -1;
   will-change: transform, opacity;
 }
 
-/* Primary orb — large, slow, teal-deep */
+/* ─── Pair A — Particle 1 (top-left quadrant) ─────────────────── */
 body::before {
-  width: 800px;
-  height: 800px;
-  top: -10%;
-  left: -10%;
-  background: radial-gradient(circle, rgba(0, 107, 113, 0.22) 0%, transparent 68%);
-  filter: blur(72px);
-  animation: quantumDrift1 45s ease-in-out infinite alternate;
+  content: '';
+  width: 740px;
+  height: 740px;
+  top: -12%;
+  left: -12%;
+  border-radius: 50%;
+
+  /* Wavefunction probability density: bright core → exponential decay */
+  background: radial-gradient(
+    circle,
+    rgba(0, 213, 225, 0.22)  0%,
+    rgba(0, 158, 167, 0.14) 30%,
+    rgba(0, 107, 113, 0.06) 60%,
+    transparent             80%
+  );
+  filter: blur(64px);
+  animation:
+    entangle-A1-drift   52s ease-in-out infinite alternate,
+    entangle-A1-scale   52s ease-in-out infinite alternate,
+    entangle-A1-opacity 26s ease-in-out infinite;   /* half period → phase */
 }
 
-/* Secondary orb — large, slow, cyan-bright */
+/* ─── Pair A — Particle 2 (bottom-right quadrant) ─────────────── */
 body::after {
-  width: 700px;
-  height: 700px;
-  bottom: -5%;
-  right: -5%;
-  background: radial-gradient(circle, rgba(0, 158, 167, 0.18) 0%, transparent 68%);
-  filter: blur(68px);
-  animation: quantumDrift2 55s ease-in-out infinite alternate;
-}
-
-/* Tertiary orb — rotating, mid-sized, cyan-3 */
-.quantum-orb-3 {
-  position: fixed;
-  width: 500px;
-  height: 500px;
-  top: 30%;
-  left: 40%;
+  content: '';
+  width: 680px;
+  height: 680px;
+  bottom: -10%;
+  right: -10%;
   border-radius: 50%;
   background: radial-gradient(
     circle,
-    rgba(63, 245, 255, 0.10) 0%,
-    rgba(0, 213, 225, 0.05) 40%,
-    transparent 70%
+    rgba(63,  245, 255, 0.18)  0%,
+    rgba(0,  158, 167, 0.10)  35%,
+    rgba(0,  107, 113, 0.04)  65%,
+    transparent               82%
   );
-  filter: blur(60px);
-  animation: quantumDrift3 38s ease-in-out infinite alternate;
-  pointer-events: none;
-  z-index: -1;
-  will-change: transform, opacity;
+  filter: blur(58px);
+  /* Anti-correlated with Particle 1:
+     · drift is mirrored (negative translate signs)
+     · scale keyframes start from inverse of A1
+     · opacity animation is phase-shifted by half-period (13s delay) */
+  animation:
+    entangle-A2-drift   52s ease-in-out infinite alternate,
+    entangle-A2-scale   52s ease-in-out infinite alternate,
+    entangle-A1-opacity 26s ease-in-out infinite 13s;  /* 13s = π phase shift */
 }
 
-/* Accent orb — small, fast, deep-teal */
-.quantum-orb-4 {
-  position: fixed;
-  width: 360px;
-  height: 360px;
-  top: 10%;
-  right: 20%;
+/* ─── Pair B — Particle 1 (top-right region) ──────────────────── */
+.eq-b1 {
+  width: 480px;
+  height: 480px;
+  top: 5%;
+  right: 8%;
   border-radius: 50%;
-  background: radial-gradient(circle, rgba(0, 107, 113, 0.13) 0%, transparent 65%);
-  filter: blur(50px);
-  animation: quantumDrift4 62s linear infinite alternate;
-  pointer-events: none;
-  z-index: -1;
-  will-change: transform, opacity;
+  background: radial-gradient(
+    circle,
+    rgba(0, 158, 167, 0.16)  0%,
+    rgba(0,  107, 113, 0.08) 40%,
+    transparent              70%
+  );
+  filter: blur(52px);
+  animation:
+    entangle-B1-drift   37s ease-in-out infinite alternate,
+    entangle-B-scale    37s ease-in-out infinite alternate,
+    entangle-B-opacity  18s ease-in-out infinite;
 }
 
-/* Interference ring 1 — inner halo */
-.quantum-ring-1 {
-  position: fixed;
-  width: 600px;
-  height: 600px;
+/* ─── Pair B — Particle 2 (lower-centre region) ───────────────── */
+.eq-b2 {
+  width: 420px;
+  height: 420px;
+  bottom: 10%;
+  left: 15%;
+  border-radius: 50%;
+  background: radial-gradient(
+    circle,
+    rgba(0,  213, 225, 0.13)  0%,
+    rgba(0,  158, 167, 0.06)  45%,
+    transparent               72%
+  );
+  filter: blur(48px);
+  /* Anti-correlated partner of .eq-b1 */
+  animation:
+    entangle-B2-drift   37s ease-in-out infinite alternate,
+    entangle-B-scale    37s ease-in-out infinite alternate-reverse, /* inverse scale */
+    entangle-B-opacity  18s ease-in-out infinite 9s;  /* 9s = π phase */
+}
+
+/* ═══════════════════════════════════════════════════════════════════
+   CORRELATION THREADS
+   ───────────────────────────────────────────────────────────────────
+   z-index: 9998 keeps threads above all application content.
+   Each thread runs two animations simultaneously:
+     cord-drift-*  →  translates the anchor point across the viewport
+     cord-spin-*   →  rotates the thread angle (simulates the
+                       entanglement axis precessing in space)
+   opacity is baked into cord-drift so we can animate it alongside
+   the position without needing a third animation layer.
+   ═══════════════════════════════════════════════════════════════════ */
+
+/* Thread A — Pair A correlation axis */
+.eq-cord-a {
+  width: 160vw;
+  height: 1px;
+  top: 50%;
+  left: -30vw;
+  transform-origin: center center;
+  z-index: -1;
+  background: linear-gradient(
+    90deg,
+    transparent              0%,
+    rgba(0, 213, 225, 0.0)  8%,
+    rgba(0, 213, 225, 0.14) 28%,
+    rgba(63, 245, 255, 0.32) 50%,
+    rgba(0, 213, 225, 0.14) 72%,
+    rgba(0, 213, 225, 0.0)  92%,
+    transparent             100%
+  );
+  animation:
+    cord-drift-a 44s ease-in-out infinite alternate,
+    cord-spin-a  44s ease-in-out infinite alternate;
+}
+
+/* Thread B — Pair B correlation axis */
+.eq-cord-b {
+  width: 140vw;
+  height: 1px;
+  top: 44%;
+  left: -20vw;
+  transform-origin: center center;
+  z-index: -1;
+  background: linear-gradient(
+    90deg,
+    transparent              0%,
+    rgba(0,  158, 167, 0.0)  10%,
+    rgba(0,  158, 167, 0.12) 30%,
+    rgba(0,  213, 225, 0.26) 50%,
+    rgba(0,  158, 167, 0.12) 70%,
+    rgba(0,  158, 167, 0.0)  90%,
+    transparent             100%
+  );
+  animation:
+    cord-drift-b 33s ease-in-out infinite alternate,
+    cord-spin-b  33s ease-in-out infinite alternate;
+}
+
+/* ═══════════════════════════════════════════════════════════════════
+   PROBABILITY FIELD HALOS
+   ───────────────────────────────────────────────────────────────────
+   Two concentric rings around each entangled particle pair's
+   midpoint, suggesting the Born-rule probability envelope
+   (|ψ|² summed over both particles).
+   ═══════════════════════════════════════════════════════════════════ */
+
+/* Field halo for Pair A midpoint (≈ screen centre) */
+.eq-field-a {
+  width: 1000px;
+  height: 1000px;
   top: 50%;
   left: 50%;
-  margin: -300px 0 0 -300px;
+  margin: -500px 0 0 -500px;
   border-radius: 50%;
-  border: 1px solid rgba(0, 213, 225, 0.07);
+
+  /* Double-ring: inner bright node + outer diffuse envelope */
+  background: transparent;
+  border: 1px solid rgba(0, 213, 225, 0.06);
   box-shadow:
-    0 0 0 1px rgba(0, 213, 225, 0.03),
-    0 0 60px 8px rgba(0, 107, 113, 0.05);
-  animation: interferenceRing1 28s ease-in-out infinite alternate;
-  pointer-events: none;
-  z-index: -1;
-  will-change: transform, opacity;
+    0 0 0   2px rgba(0, 213, 225, 0.02),
+    0 0  80px 10px rgba(0, 107, 113, 0.04),
+    inset 0 0 160px 0 rgba(0, 213, 225, 0.03);
+  animation: field-breathe-a 40s ease-in-out infinite alternate;
 }
 
-/* Interference ring 2 — outer halo */
-.quantum-ring-2 {
-  position: fixed;
-  width: 900px;
-  height: 900px;
-  top: 50%;
-  left: 50%;
-  margin: -450px 0 0 -450px;
+/* Field halo for Pair B midpoint (offset toward lower-right) */
+.eq-field-b {
+  width: 700px;
+  height: 700px;
+  top: 55%;
+  left: 55%;
+  margin: -350px 0 0 -350px;
   border-radius: 50%;
+  background: transparent;
   border: 1px solid rgba(0, 158, 167, 0.04);
-  box-shadow: 0 0 0 1px rgba(63, 245, 255, 0.02);
-  animation: interferenceRing2 36s ease-in-out infinite alternate;
-  pointer-events: none;
-  z-index: -1;
-  will-change: transform, opacity;
+  box-shadow:
+    0 0 0   1px rgba(63,  245, 255, 0.02),
+    0 0  60px  8px rgba(0,  158, 167, 0.03);
+  animation: field-breathe-b 30s ease-in-out infinite alternate;
 }
 
-/* Shimmer veil — screen-blend flash on wave collapse */
-.quantum-shimmer {
-  position: fixed;
+/* ═══════════════════════════════════════════════════════════════════
+   SPIN MARKERS
+   ───────────────────────────────────────────────────────────────────
+   z-index: -1 — stays in the background, never over app content.
+   Each marker runs TWO animations simultaneously:
+     spin-ccw / spin-cw  →  continuous arc rotation (the spin itself)
+     spin-orbit-up / dn  →  slow drift across the viewport so they
+                             roam visibly behind panels rather than
+                             being permanently hidden under one.
+   The orbital paths are asymmetric Lissajous-style trajectories so
+   the markers are always somewhere distinct in the background.
+   ═══════════════════════════════════════════════════════════════════ */
+
+.eq-spin-up {
+  width: 88px;
+  height: 88px;
+  top: 18%;
+  left: 22%;
+  border-radius: 50%;
+  z-index: -1;
+  border: 1.5px solid transparent;
+  border-top-color:   rgba(63, 245, 255, 0.55);
+  border-right-color: rgba(0,  213, 225, 0.28);
+  /* spin-ccw runs as transform:rotate, orbit carries translate — they
+     stack cleanly because CSS animations on the same property
+     chain via the last declared value. We use a wrapper technique:
+     the orbit animates top/left (positional), spin uses transform.  */
+  animation:
+    spin-ccw       9s  linear      infinite,
+    spin-orbit-up  58s ease-in-out infinite alternate;
+}
+
+.eq-spin-down {
+  width: 88px;
+  height: 88px;
+  bottom: 20%;
+  right: 24%;
+  border-radius: 50%;
+  z-index: -1;
+  border: 1.5px solid transparent;
+  border-bottom-color: rgba(63, 245, 255, 0.55);
+  border-left-color:   rgba(0,  213, 225, 0.28);
+  animation:
+    spin-cw         9s  linear      infinite,
+    spin-orbit-down 47s ease-in-out infinite alternate;
+}
+
+/* ═══════════════════════════════════════════════════════════════════
+   DECOHERENCE VEIL
+   ───────────────────────────────────────────────────────────────────
+   A slow full-bleed pulse that represents the moment of
+   wavefunction collapse (measurement / environmental decoherence).
+   Fires asymmetrically — long gap between each flash.
+   ═══════════════════════════════════════════════════════════════════ */
+
+.eq-decohere {
   inset: 0;
   background: radial-gradient(
-    ellipse 70% 50% at 30% 60%,
-    rgba(0, 213, 225, 0.03) 0%,
-    transparent 60%
+    ellipse 80% 60% at 48% 52%,
+    rgba(0, 213, 225, 0.045)  0%,
+    rgba(0, 107, 113, 0.025) 40%,
+    transparent              70%
   );
   mix-blend-mode: screen;
-  animation: shimmerPulse 8s ease-in-out infinite;
-  pointer-events: none;
-  z-index: -1;
+  animation: decohere-flash 11s ease-in-out infinite;
 }
 
-/* ── Keyframes ───────────────────────────────────────────────── */
+/* ═══════════════════════════════════════════════════════════════════
+   KEYFRAMES
+   ═══════════════════════════════════════════════════════════════════ */
 
-@keyframes quantumDrift1 {
-  0%   { transform: translate(0, 0) scale(1);          opacity: 0.60; }
-  25%  { transform: translate(12vw, 18vh) scale(1.15); opacity: 0.95; }
-  50%  { transform: translate(4vw, 42vh) scale(0.92);  opacity: 0.72; }
-  75%  { transform: translate(20vw, 8vh) scale(1.08);  opacity: 0.85; }
-  100% { transform: translate(8vw, 55vh) scale(1.20);  opacity: 0.65; }
+/* ── Pair A, Particle 1 — drift ──────────────────────────────── */
+@keyframes entangle-A1-drift {
+  0%   { transform: translate(0,     0)      ; }
+  20%  { transform: translate(10vw,  15vh)   ; }
+  45%  { transform: translate(5vw,   38vh)   ; }
+  70%  { transform: translate(18vw,  6vh)    ; }
+  100% { transform: translate(6vw,   50vh)   ; }
 }
 
-@keyframes quantumDrift2 {
-  0%   { transform: translate(0, 0) scale(1);             opacity: 0.50; }
-  25%  { transform: translate(-8vw, -12vh) scale(1.12);   opacity: 0.88; }
-  55%  { transform: translate(-16vw, -28vh) scale(0.88);  opacity: 0.62; }
-  80%  { transform: translate(-3vw, -40vh) scale(1.07);   opacity: 0.78; }
-  100% { transform: translate(-22vw, -10vh) scale(1.18);  opacity: 0.55; }
+/* ── Pair A, Particle 1 — scale (0.9 → 1.3, then back) ───────── */
+@keyframes entangle-A1-scale {
+  0%   { transform: scale(1.00); }
+  25%  { transform: scale(1.25); }
+  55%  { transform: scale(0.88); }
+  80%  { transform: scale(1.18); }
+  100% { transform: scale(0.92); }
 }
 
-@keyframes quantumDrift3 {
-  0%   { transform: translate(0, 0) scale(1) rotate(0deg);      opacity: 0.40; }
-  30%  { transform: translate(-15vw, 10vh) scale(1.25) rotate(45deg);  opacity: 0.75; }
-  60%  { transform: translate(10vw, -20vh) scale(0.80) rotate(90deg);  opacity: 0.50; }
-  100% { transform: translate(-8vw, 30vh) scale(1.15) rotate(180deg);  opacity: 0.65; }
+/* ── Pair A, Particle 1 — opacity (normal phase) ─────────────── */
+@keyframes entangle-A1-opacity {
+  0%,  100% { opacity: 0.55; }
+  50%       { opacity: 0.95; }
 }
 
-@keyframes quantumDrift4 {
-  0%   { transform: translate(0, 0) scale(1);          opacity: 0.35; }
-  40%  { transform: translate(-20vw, 15vh) scale(1.30); opacity: 0.60; }
-  70%  { transform: translate(5vw, -10vh) scale(0.75);  opacity: 0.40; }
-  100% { transform: translate(15vw, 25vh) scale(1.10);  opacity: 0.55; }
+/* ── Pair A, Particle 2 — drift (mirrored signs = anti-parallel) */
+@keyframes entangle-A2-drift {
+  0%   { transform: translate(0,      0)     ; }
+  20%  { transform: translate(-10vw, -15vh)  ; }
+  45%  { transform: translate(-5vw,  -38vh)  ; }
+  70%  { transform: translate(-18vw, -6vh)   ; }
+  100% { transform: translate(-6vw,  -50vh)  ; }
 }
 
-@keyframes interferenceRing1 {
-  0%   { transform: scale(1) translate(-8%, -5%);   opacity: 0.70; }
-  40%  { transform: scale(1.18) translate(5%, 8%);  opacity: 0.35; }
-  75%  { transform: scale(0.88) translate(10%, -3%); opacity: 0.55; }
-  100% { transform: scale(1.08) translate(-4%, 6%); opacity: 0.45; }
+/* ── Pair A, Particle 2 — scale (anti-correlated: starts at 1.3) */
+@keyframes entangle-A2-scale {
+  0%   { transform: scale(0.92); }
+  25%  { transform: scale(0.80); }  /* ↑ A1 expands → A2 contracts */
+  55%  { transform: scale(1.20); }
+  80%  { transform: scale(0.86); }
+  100% { transform: scale(1.25); }
 }
 
-@keyframes interferenceRing2 {
-  0%   { transform: scale(1) translate(3%, 2%);      opacity: 0.50; }
-  35%  { transform: scale(0.85) translate(-6%, -8%); opacity: 0.85; }
-  70%  { transform: scale(1.12) translate(4%, 5%);   opacity: 0.40; }
-  100% { transform: scale(0.95) translate(-3%, -4%); opacity: 0.65; }
+/* ── Pair B, Particle 1 — drift ───────────────────────────────── */
+@keyframes entangle-B1-drift {
+  0%   { transform: translate(0,      0)     ; }
+  30%  { transform: translate(-12vw,  8vh)   ; }
+  65%  { transform: translate(6vw,  -15vh)   ; }
+  100% { transform: translate(-4vw,  20vh)   ; }
 }
 
-@keyframes shimmerPulse {
-  0%, 100% { opacity: 0.40; }
-  50%       { opacity: 1.00; }
+/* ── Pair B, Particle 2 — drift (mirrored) ────────────────────── */
+@keyframes entangle-B2-drift {
+  0%   { transform: translate(0,     0)    ; }
+  30%  { transform: translate(12vw, -8vh)  ; }
+  65%  { transform: translate(-6vw,  15vh) ; }
+  100% { transform: translate(4vw,  -20vh) ; }
 }
 
-:root {
-  --teal-1: #006B71;
-  --teal-2: #009EA7;
-  --cyan-1: #00D5E1;
-  --cyan-2: #3FF5FF;
-  --cyan-3: #C8FCFF;
-  --gray-light: #D9D9D9;
-  --gray-01: #ABABAB;
-  --gray-02: #868A93;
-  --gray-03: #5E6674;
-  --white: #f5f5f5;
-  --white-abs: #fff;
-  --black: #2E2E2E;
-  --black-abs: #000;
+/* ── Pair B — shared scale keyframe (applied in alternate / alternate-reverse) */
+@keyframes entangle-B-scale {
+  0%   { transform: scale(1.00); }
+  35%  { transform: scale(1.30); }
+  70%  { transform: scale(0.78); }
+  100% { transform: scale(1.12); }
 }
+
+/* ── Pair B — shared opacity keyframe ────────────────────────── */
+@keyframes entangle-B-opacity {
+  0%,  100% { opacity: 0.45; }
+  50%       { opacity: 0.85; }
+}
+
+/* ── Correlation thread A — drift (translates anchor + opacity) ── */
+@keyframes cord-drift-a {
+  0%   { top:  50%; left: -30vw; opacity: 0.28; }
+  15%  { top:  30%; left: -18vw; opacity: 0.78; }
+  35%  { top:  65%; left: -25vw; opacity: 0.40; }
+  55%  { top:  20%; left: -10vw; opacity: 0.70; }
+  75%  { top:  75%; left: -35vw; opacity: 0.22; }
+  100% { top:  40%; left: -28vw; opacity: 0.60; }
+}
+
+/* ── Correlation thread A — rotation (angle precesses) ─────────── */
+@keyframes cord-spin-a {
+  0%   { transform: rotate( 28deg); }
+  25%  { transform: rotate( 56deg); }
+  50%  { transform: rotate( 14deg); }
+  75%  { transform: rotate( 72deg); }
+  100% { transform: rotate( 34deg); }
+}
+
+/* ── Correlation thread B — drift ──────────────────────────────── */
+@keyframes cord-drift-b {
+  0%   { top:  44%; left: -20vw; opacity: 0.22; }
+  20%  { top:  60%; left: -12vw; opacity: 0.65; }
+  45%  { top:  25%; left: -22vw; opacity: 0.18; }
+  65%  { top:  80%; left:  -8vw; opacity: 0.58; }
+  100% { top:  50%; left: -16vw; opacity: 0.35; }
+}
+
+/* ── Correlation thread B — rotation ───────────────────────────── */
+@keyframes cord-spin-b {
+  0%   { transform: rotate(-20deg); }
+  30%  { transform: rotate(-48deg); }
+  60%  { transform: rotate( -8deg); }
+  100% { transform: rotate(-32deg); }
+}
+
+/* ── Spin marker — orbital drift for spin-UP ───────────────────── */
+/* Covers the full viewport with an asymmetric Lissajous path so
+   it is never stuck behind a single panel region.                  */
+@keyframes spin-orbit-up {
+  0%   { top:  18%; left:  22%; }
+  12%  { top:   8%; left:  60%; }
+  26%  { top:  45%; left:  78%; }
+  40%  { top:  70%; left:  42%; }
+  55%  { top:  55%; left:  12%; }
+  68%  { top:  28%; left:  35%; }
+  80%  { top:  82%; left:  68%; }
+  91%  { top:  15%; left:  85%; }
+  100% { top:  38%; left:  50%; }
+}
+
+/* ── Spin marker — orbital drift for spin-DOWN ──────────────────── */
+/* Incommensurable period (47s vs 58s) prevents the two markers
+   ever landing in the same spot simultaneously.                    */
+@keyframes spin-orbit-down {
+  0%   { bottom:  20%; right:  24%; }
+  14%  { bottom:  60%; right:  65%; }
+  28%  { bottom:  12%; right:  40%; }
+  42%  { bottom:  72%; right:  18%; }
+  57%  { bottom:  35%; right:  80%; }
+  71%  { bottom:   8%; right:  55%; }
+  85%  { bottom:  50%; right:   8%; }
+  100% { bottom:  30%; right:  38%; }
+}
+
+/* ── Probability field halos ─────────────────────────────────── */
+@keyframes field-breathe-a {
+  0%   { transform: scale(1.00) translate(-4%, -3%); opacity: 0.60; }
+  40%  { transform: scale(1.14) translate( 4%,  6%); opacity: 0.30; }
+  75%  { transform: scale(0.90) translate( 8%, -2%); opacity: 0.50; }
+  100% { transform: scale(1.06) translate(-3%,  5%); opacity: 0.40; }
+}
+
+@keyframes field-breathe-b {
+  0%   { transform: scale(1.00) translate( 2%,  1%); opacity: 0.45; }
+  38%  { transform: scale(0.84) translate(-5%, -7%); opacity: 0.75; }
+  72%  { transform: scale(1.10) translate( 3%,  4%); opacity: 0.38; }
+  100% { transform: scale(0.94) translate(-2%, -3%); opacity: 0.60; }
+}
+
+/* ── Spin markers — rotation only (position handled by orbit) ──── */
+@keyframes spin-cw  { to { transform: rotate( 360deg); } }
+@keyframes spin-ccw { to { transform: rotate(-360deg); } }
+
+/* ── Decoherence flash ───────────────────────────────────────── */
+@keyframes decohere-flash {
+  0%,  70%, 100% { opacity: 0.20; }
+  80%             { opacity: 1.00; }
+  88%             { opacity: 0.15; }
+  94%             { opacity: 0.70; }  /* double-flash simulates re-coherence */
+}
+
+/* ═══════════════════════════════════════════════════════════════════
+   PANEL & COMPONENT STYLES (unchanged)
+   ═══════════════════════════════════════════════════════════════════ */
 
 .panel {
   border-radius: 0.5rem;
@@ -365,6 +601,7 @@ body::after {
   box-shadow: 0 0.4rem 1.2rem rgba(0, 0, 0, 0.25);
   flex: 1;
   padding: 2rem 2.4rem;
+
   @media (max-width: 768px) {
     padding: 2rem 0.5rem;
   }
@@ -377,13 +614,15 @@ body::after {
     color: var(--teal-2);
     font-weight: bold;
     margin-bottom: 1.3rem;
+
     @media (max-width: 768px) {
       font-size: 1.7rem;
     }
   }
 }
 
-/* Font family overrides */
+/* ── Ant Design overrides ─────────────────────────────────────── */
+
 .ant-btn,
 .ant-form-item,
 .ant-form-item-label,
@@ -400,7 +639,6 @@ body::after {
   font-family: 'Sora', sans-serif !important;
 }
 
-/* Color overrides */
 .ant-menu,
 .ant-menu-item,
 .ant-menu-submenu-title,
@@ -411,9 +649,7 @@ body::after {
   color: var(--gray-light) !important;
 }
 
-.ant-menu-item-selected {
-  color: var(--black) !important;
-}
+.ant-menu-item-selected { color: var(--black) !important; }
 
 .ant-input {
   color: var(--gray-light) !important;
@@ -421,33 +657,22 @@ body::after {
   border: 0.5px solid rgba(255, 255, 255, 0.7);
 }
 
-.ant-input::placeholder {
-  color: var(--gray-02) !important;
-}
+.ant-input::placeholder { color: var(--gray-02) !important; }
 
-/* Hover states */
 .ant-menu-item:hover,
 .ant-menu-submenu-title:hover {
   background-color: var(--gray-light) !important;
   color: var(--black) !important;
 }
 
-/* SVG path fills */
 .ant-menu-item svg path,
-.ant-menu-submenu-title svg path {
-  fill: var(--gray-light);
-}
+.ant-menu-submenu-title svg path { fill: var(--gray-light); }
 
 .ant-menu-item:hover svg path,
-.ant-menu-submenu:hover .ant-menu-submenu-title svg path {
-  fill: var(--black);
-}
+.ant-menu-submenu:hover .ant-menu-submenu-title svg path { fill: var(--black); }
 
-.ant-menu-item-selected svg path {
-  fill: var(--black);
-}
+.ant-menu-item-selected svg path { fill: var(--black); }
 
-/* Mobile menu: glass hover instead of opaque gray-light. */
 @media (max-width: 768px) {
   .ant-menu-item:hover,
   .ant-menu-submenu-title:hover {
@@ -456,28 +681,22 @@ body::after {
   }
 
   .ant-menu-item:hover svg path,
-  .ant-menu-submenu:hover .ant-menu-submenu-title svg path {
-    fill: var(--white);
-  }
+  .ant-menu-submenu:hover .ant-menu-submenu-title svg path { fill: var(--white); }
 
   .ant-menu-item-selected {
     background-color: rgba(0, 158, 167, 0.15) !important;
     color: var(--teal-2) !important;
   }
 
-  .ant-menu-item-selected svg path {
-    fill: var(--teal-2);
-  }
+  .ant-menu-item-selected svg path { fill: var(--teal-2); }
 }
 
-/* Menu divider */
 .ant-menu-item-divider {
   border-color: var(--gray-03) !important;
   width: 80%;
   margin: 0 auto;
 }
 
-/* Select component styles */
 .ant-select,
 .ant-select-dropdown,
 .ant-select-selector {
@@ -502,10 +721,5 @@ body::after {
   font-family: 'Sora', sans-serif;
 }
 
-.recharts-surface:focus {
-  outline: none !important;
-}
-
-.recharts-wrapper text {
-  pointer-events: none;
-}
+.recharts-surface:focus { outline: none !important; }
+.recharts-wrapper text  { pointer-events: none; }

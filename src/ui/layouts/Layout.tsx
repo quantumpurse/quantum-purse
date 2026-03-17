@@ -91,11 +91,15 @@ const Layout: React.FC<AuthLayoutProps> = ({
       {wallet.active && <Header />}
       <div className="container">{children}</div>
       {/* <Footer /> */}
-      <div className="quantum-orb-3" />
-      <div className="quantum-orb-4" />
-      <div className="quantum-ring-1" />
-      <div className="quantum-ring-2" />
-      <div className="quantum-shimmer" />
+      <div className="eq-b1" />
+      <div className="eq-b2" />
+      <div className="eq-cord-a" />
+      <div className="eq-cord-b" />
+      <div className="eq-field-a" />
+      <div className="eq-field-b" />
+      <div className="eq-spin-up" />
+      <div className="eq-spin-down" />
+      <div className="eq-decohere" />
     </div>
   );
 };
