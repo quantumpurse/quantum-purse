@@ -47,7 +47,7 @@ function testnetToMainnet() {
 function createWindow() {
     const mainWindow = new BrowserWindow({
         width: 905,
-        height: 540,
+        height: 590,
         webPreferences: {
             nodeIntegration: false,
             contextIsolation: true,
@@ -56,7 +56,7 @@ function createWindow() {
         },
     });
 
-    mainWindow.setMinimumSize(400, 540);
+    mainWindow.setMinimumSize(905, 590);
     // mainWindow.setMaximumSize(905, 650);
     mainWindow.loadFile(path.join(__dirname, 'dist', 'index.html'));
 
