@@ -379,8 +379,10 @@ const Withdraw: React.FC = () => {
                         ></div>
                         <div className={styles.content}>
                           <span className={styles.capacity}>
-                            <div>{(Number(BigInt(cell.cellOutput.capacity)) / 10**8).toFixed(2)} CKB</div>
-                            <div>+ {(profit/10**8).toFixed(5)} CKB </div>
+                            <div>
+                              {(Number(BigInt(cell.cellOutput.capacity)) / 10**8).toFixed(2)} CKB &nbsp;&nbsp;
+                              (+{Number((profit / 10**8).toFixed(5))})
+                            </div>
                             <div>
                               {remain > 0 ? `Withdrawable in ${Number(remain.toFixed(1))} days` : <span style={{ color: 'var(--teal-2)' }}>Withdrawable now!</span>}
                             </div>

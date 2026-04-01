@@ -104,7 +104,19 @@
 
 .requestWithdrawListContainer {
   overflow-y: auto;
-  max-height: 37rem;
+  max-height: 32rem;
+
+  // Fade mask at the bottom
+  mask-image: linear-gradient(
+    to bottom,
+    black calc(100% - 3rem),
+    transparent 100%
+  );
+  -webkit-mask-image: linear-gradient(
+    to bottom,
+    black calc(100% - 3rem),
+    transparent 100%
+  );
 
   // Refined scrollbar.
   &::-webkit-scrollbar {
@@ -122,7 +134,7 @@
   }
 
   @media (max-width: 768px) {
-    max-height: 31rem;
+    max-height: 25rem;
     margin-top: 0;
   }
 }
@@ -196,7 +208,7 @@
   > div:first-child {
     font-weight: bold;
     font-size: 1.4rem;
-    color: var(--gray-light);
+    color: rgb(69, 151, 130);
   }
 
   @media (max-width: 768px) {

@@ -356,8 +356,10 @@ const RequestWithdraw: React.FC = () => {
                         ></div>
                         <div className={styles.content}>
                           <span className={styles.capacity}>
-                            <div>{(Number(BigInt(cell.cellOutput.capacity)) / 10**8).toFixed(2)} CKB</div>
-                            <div>+ {Number((currentProfit / 10**8).toFixed(5))} CKB gained so far</div>
+                            <div>
+                              {(Number(BigInt(cell.cellOutput.capacity)) / 10**8).toFixed(2)} CKB &nbsp;&nbsp;
+                              (+{Number((currentProfit / 10**8).toFixed(5))}) 📈
+                            </div>
                             <div>Next locking cycle will start in {Number(tilMaxProfit.toFixed(1))} days</div>
                           </span>
                           <div
