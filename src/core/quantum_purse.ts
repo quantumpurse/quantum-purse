@@ -1,5 +1,6 @@
 // QuantumPurse.ts
-import { IS_MAIN_NET, SPHINCSPLUS_LOCK, NERVOS_DAO } from "./config";
+import { IS_MAIN_NET, SPHINCSPLUS_LOCK, MLDSA_LOCK, NERVOS_DAO } from "./config";
+import type { IAccount, SigScheme } from "../ui/store/models/interface";
 import { KeyVault, Util as KeyVaultUtil, SpxVariant } from "quantum-purse-key-vault";
 import { randomSecretKey, LightClientSetScriptsCommand, ScriptStatus } from "@nervosnetwork/ckb-light-client-js";
 import testnetConfig from "../../light-client/network.test.toml";
@@ -419,6 +420,74 @@ export default class QuantumPurse extends QPSigner {
     } finally {
       password.fill(0);
     }
+  }
+
+  /**
+   * Generates a new ML-DSA-65 account derived from the wallet master seed.
+   *
+   * The keypair is never stored — only the 36-byte lock args are persisted in IndexedDB.
+   * On each signing call the secret key is re-derived from the master seed via HKDF.
+   *
+   * @param password - The wallet password (will be zeroed after use).
+   * @returns The lock args hex string and the CKB address for the new ML-DSA-65 account.
+   * @throws Error if the master seed is not found or decryption fails.
+   */
+  public async genMlDsa65Account(
+    password: Uint8Array
+  ): Promise<{ lockArgs: string; address: string }> {
+    try {
+      if (!this.keyVault) throw new Error("KeyVault not initialized!");
+
+      const lockArgs = await this.keyVault.gen_new_ml_dsa_account(password);
+
+      // Build the CKB address using the ML-DSA-65 lock script
+      const lock = {
+        codeHash: MLDSA_LOCK.codeHash,
+        hashType: MLDSA_LOCK.hashType,
+        args: lockArgs as Hex,
+      };
+      const address = this.getAddress(lockArgs as Hex, "mldsa65");
+
+      // Register the new lock script with the light client for balance tracking
+      const existingCount = (await this.getAllMlDsaLockArgs()).length;
+      await this.setSellectiveSyncFilterInternal(lockArgs as Hex, existingCount <= 1);
+
+      return { lockArgs, address };
+    } finally {
+      password.fill(0);
+    }
+  }
+
+  /**
+   * Returns the CKB address for a given lock args and signature scheme.
+   * @param lockArgs - The lock script args (hex string).
+   * @param scheme - The signature scheme ("sphincs+" or "mldsa65").
+   */
+  public getAddress(lockArgs?: BytesLike, scheme: SigScheme = "sphincs+"): string {
+    const lockInfo = scheme === "mldsa65" ? MLDSA_LOCK : SPHINCSPLUS_LOCK;
+    const lock = this.getLockScriptForScheme(lockArgs, lockInfo);
+    const addr = Address.fromScript(lock as any, this.client);
+    return addr.toString();
+  }
+
+  /**
+   * Retrieve all ML-DSA-65 lock script args stored in IndexedDB.
+   */
+  public async getAllMlDsaLockArgs(): Promise<string[]> {
+    return await KeyVault.get_all_ml_dsa_lock_args();
+  }
+
+  // ── internal helpers ──────────────────────────────────────────────────────
+
+  private getLockScriptForScheme(
+    lockArgs: BytesLike | undefined,
+    lockInfo: { codeHash: string; hashType: string }
+  ) {
+    return {
+      codeHash: lockInfo.codeHash,
+      hashType: lockInfo.hashType,
+      args: lockArgs !== undefined ? lockArgs : (this.accountPointer as string),
+    };
   }
 
   /**

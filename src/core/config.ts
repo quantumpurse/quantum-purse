@@ -25,6 +25,34 @@ export const SPHINCSPLUS_LOCK = IS_MAIN_NET
     depType: "code",
   };
 
+// ML-DSA-65 (FIPS 204) Lock Script contract
+// Testnet type_id: deployed via ckb-mldsa-lock (github.com/toastmanAu/ckb-mldsa-lock)
+// Mainnet: not yet deployed — use testnet config as placeholder until mainnet launch.
+export const MLDSA_LOCK = IS_MAIN_NET
+  ? {
+    // TODO: replace with mainnet deployment once audited and deployed
+    codeHash:
+      "0x0000000000000000000000000000000000000000000000000000000000000000",
+    hashType: "type" as const,
+    outPoint: {
+      txHash:
+        "0x0000000000000000000000000000000000000000000000000000000000000000",
+      index: "0x0",
+    },
+    depType: "code" as const,
+  } : {
+    // type_id — stable across contract upgrades
+    codeHash:
+      "0x8984f4230ded4ac1f5efee2b67fef45fcda08bd6344c133a2f378e2f469d310d",
+    hashType: "type" as const,
+    outPoint: {
+      txHash:
+        "0xba4a6560ef719b24d170bf678611b25b799c56e6a80f18ce9c79e9561085cba7",
+      index: "0x0",
+    },
+    depType: "code" as const,
+  };
+
 // Nervos DAO Type Script contract
 export const NERVOS_DAO = IS_MAIN_NET
   ? {
