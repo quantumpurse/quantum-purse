@@ -207,14 +207,23 @@ export const wallet = createModel<RootModel>()({
       }
     },
     async createWallet({ password }) {
-      // each function call to key-vault clears the password bytes buffer,
-      // here it is firstly used to generate the main wallet seed the to generate the first default account
-      // so clone password for the second call
       let clonedPassword: Uint8Array = new Uint8Array(0);
       try {
         clonedPassword = password.slice();
         await quantum.generateMasterSeed(password);
         await quantum.genAccount(clonedPassword);
+        this.loadCurrentAccount({});
+      } finally {
+        password.fill(0);
+        clonedPassword.fill(0);
+      }
+    },
+    async createWalletMlDsa({ password }) {
+      let clonedPassword: Uint8Array = new Uint8Array(0);
+      try {
+        clonedPassword = password.slice();
+        await quantum.generateMasterSeed(password);
+        await quantum.genMlDsa65Account(clonedPassword);
         this.loadCurrentAccount({});
       } finally {
         password.fill(0);

@@ -278,23 +278,24 @@ export const StepCreatePassword: React.FC = () => {
     try {
       const parameterSet = formValues.parameterSet;
 
-      if (parameterSet) {
+      const isMlDsa = parameterSet === "mldsa65";
+
+      if (!isMlDsa && parameterSet) {
         QuantumPurse.getInstance().initKeyVault(parameterSet);
-        // store chosen param set to storage, so wallet type retains when refreshed
         await DB.setItem(STORAGE_KEYS.SPHINCS_PLUS_PARAM_SET, parameterSet.toString());
       }
 
-      // Convert to bytes immediately to allow referencing throughout the call stack
-      // each function call to key-vault clears the password bytes buffer, here it is firstly
-      // used to create the wallet then to export the SRP. So clone password for the second call
       passwordBytes = utf8ToBytes(passwordInputRef.current.value);
       clonedPasswordBytes = passwordBytes.slice();
 
-      // input cleaning. Either success or throw.
       passwordInputRef.current.value = '';
       confirmPasswordInputRef.current.value = '';
 
-      await dispatch.wallet.createWallet({ password: passwordBytes });
+      if (isMlDsa) {
+        await dispatch.wallet.createWalletMlDsa({ password: passwordBytes });
+      } else {
+        await dispatch.wallet.createWallet({ password: passwordBytes });
+      }
       srpRef.current = await QuantumPurse.getInstance().exportSeedPhrase(clonedPasswordBytes);
       setSrpRevealed(true);
       next();
@@ -482,7 +483,9 @@ const StepSecureSRP: React.FC = () => {
       title={"Secure Secret Recovery Phrase"}
       description={
         srpRef.current
-          ? "WARNING! Never copy or screenshot!\nOnly handwrite to backup your mnemonic phrase! \n Backup too your chosen SPHINCS+ variant [" + SpxVariant[Number(QuantumPurse.getInstance().getSphincsPlusParamSet())] + "]!"
+          ? QuantumPurse.getInstance().getSphincsPlusParamSet()
+            ? "WARNING! Never copy or screenshot!\nOnly handwrite to backup your mnemonic phrase! \n Backup too your chosen SPHINCS+ variant [" + SpxVariant[Number(QuantumPurse.getInstance().getSphincsPlusParamSet())] + "]!"
+            : "WARNING! Never copy or screenshot!\nOnly handwrite to backup your mnemonic phrase!\nThis wallet uses ML-DSA-65 — no variant to note, just the mnemonic."
           : "Your wallet creation process has been interrupted. Please enter your password to reveal your SRP then follow through the process or reset and start again."
       }
       exportSrpHandler={exportSrpHandler}
