@@ -90,12 +90,24 @@ export const wallet = createModel<RootModel>()({
     async loadAccounts() {
       if (!quantum) return;
       try {
-        const accounts = await quantum.getAllLockScriptArgs();
-        const accountsData = accounts.map((account, index) => ({
-          name: `Account ${index + 1}`,
-          spxLockArgs: account,
-          address: quantum.getAddress(account as Hex),
+        const spxAccounts = await quantum.getAllLockScriptArgs();
+        const mlDsaAccounts = await quantum.getAllMlDsaLockArgs();
+
+        const spxData = spxAccounts.map((lockArgs, index) => ({
+          name: `SPHINCS+ Account ${index + 1}`,
+          spxLockArgs: lockArgs,
+          address: quantum.getAddress(lockArgs as Hex, "sphincs+"),
+          scheme: "sphincs+" as const,
         }));
+
+        const mlDsaData = mlDsaAccounts.map((lockArgs, index) => ({
+          name: `ML-DSA-65 Account ${index + 1}`,
+          spxLockArgs: lockArgs,
+          address: quantum.getAddress(lockArgs as Hex, "mldsa65"),
+          scheme: "mldsa65" as const,
+        }));
+
+        const accountsData = [...spxData, ...mlDsaData];
         this.setAccounts(accountsData);
         return accountsData;
       } catch (error) {
