@@ -29,10 +29,7 @@ const ParamsetSelector: React.FC = () => {
         size="large"
         placeholder="Select a wallet type"
       >
-        <Select.OptGroup label="— ML-DSA-65 (FIPS 204) —">
-          <Select.Option value="mldsa65">ML-DSA-65 ✦ Lattice-based, compact signatures</Select.Option>
-        </Select.OptGroup>
-        <Select.OptGroup label="— SPHINCS+ (FIPS 205) — 128-bit | 36-word mnemonic">
+        <Select.OptGroup label="SPHINCS+ (FIPS 205) — 128-bit | 36-word mnemonic">
           <Select.Option value={SpxVariant.Sha2128S}>SHA2_128s</Select.Option>
           <Select.Option value={SpxVariant.Sha2128F}>SHA2_128f</Select.Option>
           <Select.Option value={SpxVariant.Shake128S}>SHAKE_128s</Select.Option>

@@ -6,6 +6,8 @@ export const ROUTES = {
   COMING_SOON: "/coming-soon",
   CREATE_WALLET: "/create-wallet",
   IMPORT_WALLET: "/import-wallet",
+  CREATE_WALLET_MLDSA: "/create-wallet-mldsa",
+  IMPORT_WALLET_MLDSA: "/import-wallet-mldsa",
   SEND: "/send",
   RECEIVE: "/receive",
   NERVOS_DAO: {

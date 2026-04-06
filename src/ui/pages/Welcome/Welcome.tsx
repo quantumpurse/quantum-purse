@@ -30,11 +30,21 @@ const Welcome: React.FC = () => {
     <section className={styles.welcome}>
       <h1>Welcome to Quantum Purse</h1>
       <p>Lightweight Client Wallet, Post-Quantum Hardened, Powered by CKB.</p>
+
+      <p style={{ marginTop: '1.6rem', marginBottom: '0.4rem', fontWeight: 600 }}>SPHINCS+ (FIPS 205)</p>
       <Button onClick={() => navigate(ROUTES.CREATE_WALLET, {replace: true})}>
         Create a New Wallet
       </Button>
       <Button onClick={() => navigate(ROUTES.IMPORT_WALLET, {replace: true})}>
         Import a Wallet Seed
+      </Button>
+
+      <p style={{ marginTop: '2rem', marginBottom: '0.4rem', fontWeight: 600 }}>ML-DSA-65 (FIPS 204)</p>
+      <Button onClick={() => navigate(ROUTES.CREATE_WALLET_MLDSA, {replace: true})}>
+        Create an ML-DSA-65 Wallet
+      </Button>
+      <Button onClick={() => navigate(ROUTES.IMPORT_WALLET_MLDSA, {replace: true})}>
+        Import an ML-DSA-65 Wallet
       </Button>
     </section>
   );

@@ -9,24 +9,20 @@ import React, {
   useState,
 } from "react";
 import { useDispatch, useSelector } from "react-redux";
-import { useLocation } from "react-router-dom";
+import { useLocation, useNavigate } from "react-router-dom";
 import { SrpTextBox } from "../../components";
 import usePasswordValidator from "../../hooks/usePasswordValidator";
 import { Dispatch, RootState } from "../../store";
-import {
-  STORAGE_KEYS,
-  WALLET_STEP,
-  WalletStepEnum,
-  ROUTES
-} from "../../utils/constants";
+import { STORAGE_KEYS, WALLET_STEP, WalletStepEnum, ROUTES } from "../../utils/constants";
 import { cx, formatError } from "../../utils/methods";
-import styles from "./CreateWallet.module.scss";
-import { CreateWalletContextType } from "./interface";
-import ParamSetSelectorForm from "../../components/sphincs-param-set/param_selector";
+import styles from "../CreateWallet/CreateWallet.module.scss";
+import { CreateWalletContextType } from "../CreateWallet/interface";
 import QuantumPurse, { SpxVariant } from "../../../core/quantum_purse";
-import { useNavigate } from "react-router-dom";
 import { DB } from "../../../core/db";
 import { bytesToUtf8, utf8ToBytes } from "../../../core/utils";
+
+// ML-DSA uses a fixed internal KeyVault variant (irrelevant to ML-DSA key derivation)
+const MLDSA_KEYVAULT_DEFAULT = SpxVariant.Sha2128S;
 
 interface ExtendedCreateWalletContextType extends CreateWalletContextType {
   srpRef: React.RefObject<Uint8Array | null>;
@@ -34,7 +30,7 @@ interface ExtendedCreateWalletContextType extends CreateWalletContextType {
   setSrpRevealed: (value: boolean) => void;
 }
 
-const CreateWalletContext = createContext<ExtendedCreateWalletContextType>({
+const CreateWalletMlDsaContext = createContext<ExtendedCreateWalletContextType>({
   currentStep: WALLET_STEP.PASSWORD,
   setCurrentStep: () => {},
   next: () => {},
@@ -46,39 +42,32 @@ const CreateWalletContext = createContext<ExtendedCreateWalletContextType>({
   setSrpRevealed: () => {},
 });
 
-const CreateWalletProvider: React.FC<{ children: React.ReactNode }> = ({
-  children,
-}) => {
+const CreateWalletMlDsaProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const location = useLocation();
   const [currentStep, setCurrentStep] = useState<WalletStepEnum>(
     location.state?.step || WALLET_STEP.PASSWORD
   );
   const dispatch = useDispatch<Dispatch>();
-  const { createWallet: loadingCreateWallet } =
+  const { createWalletMlDsa: loadingCreateWallet } =
     useSelector((state: RootState) => state.loading.effects.wallet);
-  
+
   const srpRef = useRef<Uint8Array | null>(null);
   const [srpRevealed, setSrpRevealed] = useState(false);
 
   const next = () => {
-    const nextStepIndex =
-      steps.findIndex((step) => step.key === currentStep) + 1;
+    const nextStepIndex = steps.findIndex((step) => step.key === currentStep) + 1;
     setCurrentStep(steps[nextStepIndex].key);
   };
-  
+
   const prev = () => {
-    const prevStepIndex =
-      steps.findIndex((step) => step.key === currentStep) - 1;
+    const prevStepIndex = steps.findIndex((step) => step.key === currentStep) - 1;
     setCurrentStep(steps[prevStepIndex].key);
   };
 
   useEffect(() => {
-    if (location.state?.step) {
-      setCurrentStep(location.state.step);
-    }
+    if (location.state?.step) setCurrentStep(location.state.step);
   }, [location.state?.step]);
 
-  // Cleanup on unmount
   useEffect(() => {
     return () => {
       if (srpRef.current) {
@@ -96,11 +85,7 @@ const CreateWalletProvider: React.FC<{ children: React.ReactNode }> = ({
     } catch (error) {
       Modal.error({
         title: 'Wallet Initialization Failed',
-        content: (
-          <div>
-            <p>{formatError(error)}</p>
-          </div>
-        ),
+        content: <div><p>{formatError(error)}</p></div>,
         centered: true,
         style: { transform: 'scale(0.9)' },
         transitionName: '',
@@ -115,66 +100,41 @@ const CreateWalletProvider: React.FC<{ children: React.ReactNode }> = ({
     }
   };
 
-  const steps = useMemo(
-    () => [
-      {
-        key: WALLET_STEP.PASSWORD,
-        title: "Wallet Type & Password",
-        description: "Choose a SPHINCS+ parameter set and create a password",
-        icon: loadingCreateWallet ? <LoadingOutlined /> : <KeyOutlined />,
-        content: <StepCreatePassword />,
-      },
-      {
-        key: WALLET_STEP.SRP,
-        title: "Secure Secret Recovery Phrase",
-        description: "Back up your SPHINCS+ variant and Mnemonic Seed Phrase",
-        icon: <LockOutlined />,
-        content: <StepSecureSRP />,
-      },
-    ],
-    [loadingCreateWallet]
-  );
+  const steps = useMemo(() => [
+    {
+      key: WALLET_STEP.PASSWORD,
+      title: "Password",
+      description: "Create a password for your ML-DSA-65 wallet",
+      icon: loadingCreateWallet ? <LoadingOutlined /> : <KeyOutlined />,
+      content: <StepCreatePassword />,
+    },
+    {
+      key: WALLET_STEP.SRP,
+      title: "Secret Recovery Phrase",
+      description: "Back up your mnemonic seed phrase",
+      icon: <LockOutlined />,
+      content: <StepSecureSRP />,
+    },
+  ], [loadingCreateWallet]);
 
   return (
-    <CreateWalletContext.Provider
-      value={{
-        steps,
-        currentStep,
-        setCurrentStep,
-        next,
-        prev,
-        done,
-        srpRef,
-        srpRevealed,
-        setSrpRevealed,
-      }}
+    <CreateWalletMlDsaContext.Provider
+      value={{ steps, currentStep, setCurrentStep, next, prev, done, srpRef, srpRevealed, setSrpRevealed }}
     >
       {children}
-    </CreateWalletContext.Provider>
+    </CreateWalletMlDsaContext.Provider>
   );
 };
 
-const CreateWalletContent: React.FC = () => {
-  const { steps, currentStep } = useContext(CreateWalletContext);
-
-  return (
-    <section className={cx(styles.createWallet, "panel")}>
-      <h1>Create A New Wallet</h1>
-      <div>{steps.find((step) => step.key === currentStep)?.content}</div>
-    </section>
-  );
-};
-
-export const StepCreatePassword: React.FC = () => {
+const StepCreatePassword: React.FC = () => {
   const [form] = Form.useForm();
-  const { next, srpRef, setSrpRevealed } = useContext(CreateWalletContext);
+  const { next, srpRef, setSrpRevealed } = useContext(CreateWalletMlDsaContext);
   const values = Form.useWatch([], form);
   const dispatch = useDispatch<Dispatch>();
   const [submittable, setSubmittable] = React.useState<boolean>(false);
-  const { createWallet: loadingCreateWallet } =
+  const { createWalletMlDsa: loadingCreateWallet } =
     useSelector((state: RootState) => state.loading.effects.wallet);
-  const parameterSet = Form.useWatch('parameterSet', form);
-  const { rules: passwordRules } = usePasswordValidator(parameterSet);
+  const { rules: passwordRules } = usePasswordValidator(MLDSA_KEYVAULT_DEFAULT);
   const navigate = useNavigate();
 
   const passwordInputRef = useRef<HTMLInputElement>(null);
@@ -188,10 +148,8 @@ export const StepCreatePassword: React.FC = () => {
 
   useEffect(() => {
     return () => {
-      if (passwordInputRef.current)
-        passwordInputRef.current.value = '';
-      if (confirmPasswordInputRef.current)
-        confirmPasswordInputRef.current.value = '';
+      if (passwordInputRef.current) passwordInputRef.current.value = '';
+      if (confirmPasswordInputRef.current) confirmPasswordInputRef.current.value = '';
     };
   }, []);
 
@@ -202,13 +160,8 @@ export const StepCreatePassword: React.FC = () => {
       .catch(() => setSubmittable(false));
   }, [form, values]);
 
-  useEffect(() => {
-    handlePasswordChange();
-  }, [parameterSet]);
-
   const handlePasswordChange = async () => {
     if (!passwordInputRef.current) return;
-
     setPasswordError('');
     setPasswordWarning('');
 
@@ -218,9 +171,6 @@ export const StepCreatePassword: React.FC = () => {
     }
 
     let hasError = false;
-
-    // Reusing password rules that were previously defined for Ant Form.item
-    // but now plain html input
     for (const rule of passwordRules) {
       try {
         if (rule.validator) {
@@ -252,7 +202,6 @@ export const StepCreatePassword: React.FC = () => {
 
   const handleConfirmPasswordChange = () => {
     if (!passwordInputRef.current || !confirmPasswordInputRef.current) return;
-
     setConfirmPasswordError('');
 
     if (!confirmPasswordInputRef.current.value) {
@@ -261,11 +210,7 @@ export const StepCreatePassword: React.FC = () => {
     }
 
     const passwordsMatch = passwordInputRef.current.value === confirmPasswordInputRef.current.value;
-
-    if (!passwordsMatch) {
-      setConfirmPasswordError('The passwords do not match!');
-    }
-
+    if (!passwordsMatch) setConfirmPasswordError('The passwords do not match!');
     setPasswordsValid(passwordsMatch && !passwordError);
   };
 
@@ -276,12 +221,8 @@ export const StepCreatePassword: React.FC = () => {
     let clonedPasswordBytes: Uint8Array = new Uint8Array(0);
 
     try {
-      const parameterSet = formValues.parameterSet;
-
-      if (parameterSet) {
-        QuantumPurse.getInstance().initKeyVault(parameterSet);
-        await DB.setItem(STORAGE_KEYS.SPHINCS_PLUS_PARAM_SET, parameterSet.toString());
-      }
+      QuantumPurse.getInstance().initKeyVault(MLDSA_KEYVAULT_DEFAULT);
+      await DB.setItem(STORAGE_KEYS.SPHINCS_PLUS_PARAM_SET, MLDSA_KEYVAULT_DEFAULT.toString());
 
       passwordBytes = utf8ToBytes(passwordInputRef.current.value);
       clonedPasswordBytes = passwordBytes.slice();
@@ -289,20 +230,15 @@ export const StepCreatePassword: React.FC = () => {
       passwordInputRef.current.value = '';
       confirmPasswordInputRef.current.value = '';
 
-      await dispatch.wallet.createWallet({ password: passwordBytes });
+      await dispatch.wallet.createWalletMlDsa({ password: passwordBytes });
       srpRef.current = await QuantumPurse.getInstance().exportSeedPhrase(clonedPasswordBytes);
       setSrpRevealed(true);
       next();
       await DB.setItem(STORAGE_KEYS.WALLET_STEP, WALLET_STEP.SRP.toString());
-
     } catch (error) {
       Modal.error({
         title: 'Wallet Creation Failed',
-        content: (
-          <div>
-            <p>{formatError(error)}</p>
-          </div>
-        ),
+        content: <div><p>{formatError(error)}</p></div>,
         centered: true,
         style: { transform: 'scale(0.9)' },
         transitionName: '',
@@ -311,33 +247,20 @@ export const StepCreatePassword: React.FC = () => {
     } finally {
       passwordBytes.fill(0);
       clonedPasswordBytes.fill(0);
-      if(passwordInputRef.current)
-        passwordInputRef.current.value = '';
-      if(confirmPasswordInputRef.current)
-        confirmPasswordInputRef.current.value = '';
+      if (passwordInputRef.current) passwordInputRef.current.value = '';
+      if (confirmPasswordInputRef.current) confirmPasswordInputRef.current.value = '';
     }
   };
 
   return (
     <div className={styles.stepCreatePassword}>
-      <h2>Wallet Type & Password</h2>
-      <Form 
-        form={form} 
-        layout="vertical" 
-        onFinish={onFinish}
-        initialValues={{ parameterSet: SpxVariant.Sha2128S }}
-      >
-        
-        <ParamSetSelectorForm />
-
+      <h2>Password</h2>
+      <p style={{ color: 'var(--gray-01)', marginBottom: '1.6rem', fontSize: '1.4rem' }}>
+        ML-DSA-65 (FIPS 204) — Lattice-based post-quantum signatures, compact and fast.
+      </p>
+      <Form form={form} layout="vertical" onFinish={onFinish} initialValues={{}}>
         <div style={{ marginBottom: '1.6rem' }}>
-          <label
-            style={{
-              color: 'var(--gray-01)',
-              marginBottom: '0.8rem',
-              display: 'block',
-            }}
-          >
+          <label style={{ color: 'var(--gray-01)', marginBottom: '0.8rem', display: 'block' }}>
             <span style={{ color: '#ff4d4f' }}>*</span> Password
           </label>
           <div className={styles.passwordWrapper}>
@@ -364,13 +287,7 @@ export const StepCreatePassword: React.FC = () => {
         </div>
 
         <div style={{ marginBottom: '1.6rem' }}>
-          <label
-            style={{
-              color: 'var(--gray-01)',
-              marginBottom: '0.8rem',
-              display: 'block',
-            }}
-          >
+          <label style={{ color: 'var(--gray-01)', marginBottom: '0.8rem', display: 'block' }}>
             <span style={{ color: '#ff4d4f' }}>*</span> Confirm Password
           </label>
           <div className={styles.passwordWrapper}>
@@ -398,35 +315,23 @@ export const StepCreatePassword: React.FC = () => {
         <Form.Item
           name="walletTypeBackup"
           valuePropName="checked"
-          rules={[
-            {
-              validator: (_, value) =>
-                value
-                  ? Promise.resolve()
-                  : Promise.reject(new Error("You must agree to the terms!")),
-            },
-          ]}
+          rules={[{
+            validator: (_, value) =>
+              value ? Promise.resolve() : Promise.reject(new Error("You must agree to the terms!")),
+          }]}
         >
           <Checkbox style={{ color: 'var(--gray-01)' }}>
-            I understand I must back up my wallet type with the mnemonic phrase next step.
+            I understand I must back up my mnemonic phrase in the next step.
           </Checkbox>
         </Form.Item>
 
         <Form.Item
           name="passwordAwareness"
           valuePropName="checked"
-          rules={[
-            {
-              validator: (_, value) => {
-                if (value) {
-                  return Promise.resolve();
-                }
-                return Promise.reject(
-                  new Error("You must agree to the terms!")
-                );
-              },
-            },
-          ]}
+          rules={[{
+            validator: (_, value) =>
+              value ? Promise.resolve() : Promise.reject(new Error("You must agree to the terms!")),
+          }]}
         >
           <Checkbox style={{ color: 'var(--gray-01)' }}>
             I understand that Quantum Purse cannot recover this password if lost.
@@ -435,10 +340,7 @@ export const StepCreatePassword: React.FC = () => {
 
         <Flex align="center" justify="center" gap={16}>
           <Form.Item>
-            <Button
-              onClick={() => navigate(ROUTES.WELCOME)}
-              disabled={loadingCreateWallet}
-            >
+            <Button onClick={() => navigate(ROUTES.WELCOME)} disabled={loadingCreateWallet}>
               Back
             </Button>
           </Form.Item>
@@ -448,7 +350,7 @@ export const StepCreatePassword: React.FC = () => {
               type="primary"
               disabled={!submittable || !passwordsValid || loadingCreateWallet}
               loading={loadingCreateWallet}
-              style={{color: "var(--black)"}}
+              style={{ color: "var(--black)" }}
             >
               Create
             </Button>
@@ -460,7 +362,7 @@ export const StepCreatePassword: React.FC = () => {
 };
 
 const StepSecureSRP: React.FC = () => {
-  const { done, srpRef, srpRevealed, setSrpRevealed } = useContext(CreateWalletContext);
+  const { done, srpRef, srpRevealed, setSrpRevealed } = useContext(CreateWalletMlDsaContext);
 
   const exportSrpHandler = async (password: Uint8Array) => {
     try {
@@ -477,9 +379,7 @@ const StepSecureSRP: React.FC = () => {
       title={"Secure Secret Recovery Phrase"}
       description={
         srpRef.current
-          ? QuantumPurse.getInstance().getSphincsPlusParamSet()
-            ? "WARNING! Never copy or screenshot!\nOnly handwrite to backup your mnemonic phrase! \n Backup too your chosen SPHINCS+ variant [" + SpxVariant[Number(QuantumPurse.getInstance().getSphincsPlusParamSet())] + "]!"
-            : "WARNING! Never copy or screenshot!\nOnly handwrite to backup your mnemonic phrase!\nThis wallet uses ML-DSA-65 — no variant to note, just the mnemonic."
+          ? "WARNING! Never copy or screenshot!\nOnly handwrite to backup your mnemonic phrase!\nThis wallet uses ML-DSA-65 — no variant to note, just the mnemonic."
           : "Your wallet creation process has been interrupted. Please enter your password to reveal your SRP then follow through the process or reset and start again."
       }
       exportSrpHandler={exportSrpHandler}
@@ -489,12 +389,22 @@ const StepSecureSRP: React.FC = () => {
   );
 };
 
-const CreateWallet: React.FC = () => {
+const CreateWalletMlDsaContent: React.FC = () => {
+  const { steps, currentStep } = useContext(CreateWalletMlDsaContext);
   return (
-    <CreateWalletProvider>
-      <CreateWalletContent />
-    </CreateWalletProvider>
+    <section className={cx(styles.createWallet, "panel")}>
+      <h1>Create An ML-DSA-65 Wallet</h1>
+      <div>{steps.find((step) => step.key === currentStep)?.content}</div>
+    </section>
   );
 };
 
-export default CreateWallet;
+const CreateWalletMlDsa: React.FC = () => {
+  return (
+    <CreateWalletMlDsaProvider>
+      <CreateWalletMlDsaContent />
+    </CreateWalletMlDsaProvider>
+  );
+};
+
+export default CreateWalletMlDsa;

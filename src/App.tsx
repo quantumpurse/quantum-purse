@@ -10,8 +10,10 @@ import InactiveLayout from "./ui/layouts/InactiveLayout";
 import {
   CommingSoon,
   CreateWallet,
+  CreateWalletMlDsa,
   EjectWallet,
   ImportWallet,
+  ImportWalletMlDsa,
   Receive,
   RevealSRP,
   Send,
@@ -130,6 +132,8 @@ const App: React.FC = () => {
           <Route path={ROUTES.WELCOME} element={<Welcome />} />
           <Route path={ROUTES.CREATE_WALLET} element={<CreateWallet />} />
           <Route path={ROUTES.IMPORT_WALLET} element={<ImportWallet />} />
+          <Route path={ROUTES.CREATE_WALLET_MLDSA} element={<CreateWalletMlDsa />} />
+          <Route path={ROUTES.IMPORT_WALLET_MLDSA} element={<ImportWalletMlDsa />} />
         </Route>
         <Route path={ROUTES.HOME} element={<ActiveLayout />}>
           <Route path={ROUTES.RECEIVE} element={<Receive />} />

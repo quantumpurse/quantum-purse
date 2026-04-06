@@ -1,13 +1,5 @@
 import { KeyOutlined, LoadingOutlined, LockOutlined, EyeInvisibleOutlined, EyeOutlined } from "@ant-design/icons";
-import {
-  Button,
-  Checkbox,
-  Flex,
-  Form,
-  FormInstance,
-  Modal,
-  Tabs,
-} from "antd";
+import { Button, Checkbox, Flex, Form, FormInstance, Modal, Tabs } from "antd";
 import React, {
   createContext,
   useContext,
@@ -17,72 +9,71 @@ import React, {
   useState,
 } from "react";
 import { useDispatch, useSelector } from "react-redux";
-import { useLocation } from "react-router-dom";
+import { useLocation, useNavigate } from "react-router-dom";
 import usePasswordValidator from "../../hooks/usePasswordValidator";
 import { Dispatch, RootState } from "../../store";
 import { WalletStepEnum, STORAGE_KEYS, ROUTES } from "../../utils/constants";
 import { cx, formatError } from "../../utils/methods";
-import styles from "./ImportWallet.module.scss";
-import ParamSetSelector from "../../components/sphincs-param-set/param_selector";
-import QuantumPurse from "../../../core/quantum_purse";
-import { useNavigate } from "react-router-dom";
+import styles from "../ImportWallet/ImportWallet.module.scss";
+import QuantumPurse, { SpxVariant } from "../../../core/quantum_purse";
 import { DB } from "../../../core/db";
 import { utf8ToBytes } from "../../../core/utils";
 import { IS_MAIN_NET } from "../../../core/config";
 
-interface ImportWalletContext {
-  currentStep?: WalletStepEnum;
-  next: () => void;
-  prev: () => void;
-}
-
-const ImportWalletContext = createContext<ImportWalletContext>({
-  currentStep: undefined,
-  next: () => {},
-  prev: () => {},
-});
+// ML-DSA uses a fixed internal KeyVault variant (irrelevant to ML-DSA key derivation)
+const MLDSA_KEYVAULT_DEFAULT = SpxVariant.Sha2128S;
 
 const STEP = {
   SRP: 1,
   PASSWORD: 2,
 };
 
-const ImportWalletProvider: React.FC<{ children: React.ReactNode }> = ({
-  children,
-}) => {
+interface ImportMlDsaContext {
+  currentStep?: WalletStepEnum;
+  next: () => void;
+  prev: () => void;
+}
+
+const ImportWalletMlDsaContext = createContext<ImportMlDsaContext>({
+  currentStep: undefined,
+  next: () => {},
+  prev: () => {},
+});
+
+const ImportWalletMlDsaProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const location = useLocation();
   const [currentStep, setCurrentStep] = useState<WalletStepEnum>(
     location.state?.step || STEP.SRP
   );
 
-  const next = () => {
-    setCurrentStep(currentStep + 1);
-  };
-  const prev = () => {
-    setCurrentStep(currentStep - 1);
-  };
+  const next = () => setCurrentStep(currentStep + 1);
+  const prev = () => setCurrentStep(currentStep - 1);
 
   useEffect(() => {
-    if (location.state?.step) {
-      setCurrentStep(location.state.step);
-    }
+    if (location.state?.step) setCurrentStep(location.state.step);
   }, [location.state?.step]);
 
   return (
-    <ImportWalletContext.Provider value={{ currentStep, next, prev }}>
+    <ImportWalletMlDsaContext.Provider value={{ currentStep, next, prev }}>
       {children}
-    </ImportWalletContext.Provider>
+    </ImportWalletMlDsaContext.Provider>
   );
 };
 
-export const StepCreatePassword: React.FC<BaseStepProps> = ({ form, passwordInputRef, confirmPasswordInputRef }) => {
+interface BaseStepProps {
+  form: FormInstance;
+  passwordInputRef?: React.RefObject<HTMLInputElement | null>;
+  confirmPasswordInputRef?: React.RefObject<HTMLInputElement | null>;
+  srpInputRef?: React.RefObject<HTMLTextAreaElement | null>;
+}
+
+const StepCreatePassword: React.FC<BaseStepProps> = ({ form, passwordInputRef, confirmPasswordInputRef }) => {
   const values = Form.useWatch([], form);
   const [submittable, setSubmittable] = React.useState<boolean>(false);
-  const { importWallet: loadingImportWallet } =
+  const { importWalletMlDsa: loadingImport } =
     useSelector((state: RootState) => state.loading.effects.wallet);
-  const { prev } = useContext(ImportWalletContext);
-  const parameterSet = Form.useWatch("parameterSet", form);
-  const { rules: passwordRules } = usePasswordValidator(parameterSet);
+  const { prev } = useContext(ImportWalletMlDsaContext);
+  const { rules: passwordRules } = usePasswordValidator(MLDSA_KEYVAULT_DEFAULT);
 
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
@@ -96,24 +87,15 @@ export const StepCreatePassword: React.FC<BaseStepProps> = ({ form, passwordInpu
       try {
         await form.validateFields({ validateOnly: true });
         setSubmittable(true);
-      } catch (e:any) {
-        if (e.errorFields?.length === 0) {
-          setSubmittable(true);
-        } else {
-          setSubmittable(false);
-        }
+      } catch (e: any) {
+        setSubmittable(e.errorFields?.length === 0);
       }
     };
     validate();
   }, [form, values]);
 
-  useEffect(() => {
-    handlePasswordChange();
-  }, [parameterSet]);
-
   const handlePasswordChange = async () => {
     if (!passwordInputRef?.current) return;
-
     setPasswordError('');
     setPasswordWarning('');
 
@@ -123,7 +105,6 @@ export const StepCreatePassword: React.FC<BaseStepProps> = ({ form, passwordInpu
     }
 
     let hasError = false;
-
     for (const rule of passwordRules) {
       try {
         if (rule.validator) {
@@ -155,7 +136,6 @@ export const StepCreatePassword: React.FC<BaseStepProps> = ({ form, passwordInpu
 
   const handleConfirmPasswordChange = () => {
     if (!passwordInputRef?.current || !confirmPasswordInputRef?.current) return;
-
     setConfirmPasswordError('');
 
     if (!confirmPasswordInputRef.current.value) {
@@ -164,33 +144,19 @@ export const StepCreatePassword: React.FC<BaseStepProps> = ({ form, passwordInpu
     }
 
     const passwordsMatch = passwordInputRef.current.value === confirmPasswordInputRef.current.value;
-
-    if (!passwordsMatch) {
-      setConfirmPasswordError('The passwords do not match!');
-    }
-
+    if (!passwordsMatch) setConfirmPasswordError('The passwords do not match!');
     setPasswordsValid(passwordsMatch && !passwordError);
-  };
-
-  const handleImportClick = () => {
-    // Don't clear password inputs here - we'll need them in onFinish
-    form.submit();
   };
 
   return (
     <div className={styles.stepCreatePassword}>
-      <h2>Wallet Type & Password</h2>
-
-      <ParamSetSelector />
+      <h2>Password</h2>
+      <p style={{ color: 'var(--gray-01)', marginBottom: '1.6rem', fontSize: '1.4rem' }}>
+        ML-DSA-65 (FIPS 204) — Lattice-based post-quantum signatures, compact and fast.
+      </p>
 
       <div style={{ marginBottom: '1.6rem' }}>
-        <label
-          style={{
-            color: 'var(--gray-01)',
-            marginBottom: '0.8rem',
-            display: 'block',
-          }}
-        >
+        <label style={{ color: 'var(--gray-01)', marginBottom: '0.8rem', display: 'block' }}>
           <span style={{ color: '#ff4d4f' }}>*</span> Password
         </label>
         <div className={styles.passwordWrapper}>
@@ -198,7 +164,7 @@ export const StepCreatePassword: React.FC<BaseStepProps> = ({ form, passwordInpu
             ref={passwordInputRef}
             type={showPassword ? 'text' : 'password'}
             placeholder="Please choose a strong password"
-            disabled={loadingImportWallet}
+            disabled={loadingImport}
             className={styles.passwordInput}
             onChange={handlePasswordChange}
           />
@@ -206,7 +172,7 @@ export const StepCreatePassword: React.FC<BaseStepProps> = ({ form, passwordInpu
             type="button"
             className={styles.toggleButton}
             onClick={() => setShowPassword(!showPassword)}
-            disabled={loadingImportWallet}
+            disabled={loadingImport}
             tabIndex={-1}
           >
             {showPassword ? <EyeOutlined /> : <EyeInvisibleOutlined />}
@@ -217,21 +183,15 @@ export const StepCreatePassword: React.FC<BaseStepProps> = ({ form, passwordInpu
       </div>
 
       <div style={{ marginBottom: '1.6rem' }}>
-          <label
-            style={{
-              color: 'var(--gray-01)',
-              marginBottom: '0.8rem',
-              display: 'block',
-            }}
-          >
-            <span style={{ color: '#ff4d4f' }}>*</span> Confirm Password
-          </label>
+        <label style={{ color: 'var(--gray-01)', marginBottom: '0.8rem', display: 'block' }}>
+          <span style={{ color: '#ff4d4f' }}>*</span> Confirm Password
+        </label>
         <div className={styles.passwordWrapper}>
           <input
             ref={confirmPasswordInputRef}
             type={showConfirmPassword ? 'text' : 'password'}
             placeholder="Confirm your password"
-            disabled={loadingImportWallet}
+            disabled={loadingImport}
             className={styles.passwordInput}
             onChange={handleConfirmPasswordChange}
           />
@@ -239,7 +199,7 @@ export const StepCreatePassword: React.FC<BaseStepProps> = ({ form, passwordInpu
             type="button"
             className={styles.toggleButton}
             onClick={() => setShowConfirmPassword(!showConfirmPassword)}
-            disabled={loadingImportWallet}
+            disabled={loadingImport}
             tabIndex={-1}
           >
             {showConfirmPassword ? <EyeOutlined /> : <EyeInvisibleOutlined />}
@@ -249,37 +209,12 @@ export const StepCreatePassword: React.FC<BaseStepProps> = ({ form, passwordInpu
       </div>
 
       <Form.Item
-        name="walletTypeBackup"
-        valuePropName="checked"
-        rules={[
-          {
-            validator: (_, value) =>
-              value
-                ? Promise.resolve()
-                : Promise.reject(
-                    new Error("You must acknowledge this statement!")
-                  ),
-          },
-        ]}
-      >
-        <Checkbox style={{ color: "var(--gray-01)" }}>
-          I understand that the wallet type must be the one I backed up with the mnemonic phrase I input earlier.
-        </Checkbox>
-      </Form.Item>
-
-      <Form.Item
         name="passwordAwareness"
         valuePropName="checked"
-        rules={[
-          {
-            validator: (_, value) =>
-              value
-                ? Promise.resolve()
-                : Promise.reject(
-                    new Error("You must acknowledge this statement!")
-                  ),
-          },
-        ]}
+        rules={[{
+          validator: (_, value) =>
+            value ? Promise.resolve() : Promise.reject(new Error("You must acknowledge this statement!")),
+        }]}
       >
         <Checkbox style={{ color: "var(--gray-01)" }}>
           I understand that Quantum Purse cannot recover this password if lost.
@@ -288,19 +223,14 @@ export const StepCreatePassword: React.FC<BaseStepProps> = ({ form, passwordInpu
 
       <Flex align="center" justify="center" gap={16}>
         <Form.Item>
-          <Button
-            onClick={() => prev()}
-            disabled={loadingImportWallet}
-          >
-            Back
-          </Button>
+          <Button onClick={() => prev()} disabled={loadingImport}>Back</Button>
         </Form.Item>
         <Form.Item>
           <Button
             type="primary"
-            onClick={handleImportClick}
-            disabled={!submittable || !passwordsValid || loadingImportWallet}
-            loading={loadingImportWallet}
+            onClick={() => form.submit()}
+            disabled={!submittable || !passwordsValid || loadingImport}
+            loading={loadingImport}
           >
             Import
           </Button>
@@ -310,22 +240,14 @@ export const StepCreatePassword: React.FC<BaseStepProps> = ({ form, passwordInpu
   );
 };
 
-interface BaseStepProps {
-  form: FormInstance;
-  passwordInputRef?: React.RefObject<HTMLInputElement | null>;
-  confirmPasswordInputRef?: React.RefObject<HTMLInputElement | null>;
-  srpInputRef?: React.RefObject<HTMLTextAreaElement | null>;
-}
-
 const StepInputSrp: React.FC<BaseStepProps> = ({ form, srpInputRef }) => {
   const [submittable, setSubmittable] = React.useState<boolean>(false);
   const [srpError, setSrpError] = React.useState<string>('');
-  const { next } = useContext(ImportWalletContext);
+  const { next } = useContext(ImportWalletMlDsaContext);
   const navigate = useNavigate();
 
   const handleSrpChange = () => {
     if (!srpInputRef?.current) return;
-
     setSrpError('');
 
     if (!srpInputRef.current.value) {
@@ -335,8 +257,8 @@ const StepInputSrp: React.FC<BaseStepProps> = ({ form, srpInputRef }) => {
 
     let wordCount = 0;
     let inWord = false;
-    for (let i = 0; i < srpInputRef?.current?.value?.length; i++) {
-      const char = srpInputRef?.current?.value[i];
+    for (let i = 0; i < srpInputRef.current.value.length; i++) {
+      const char = srpInputRef.current.value[i];
       const isSpace = char === ' ' || char === '\t' || char === '\n' || char === '\r';
       if (!isSpace && !inWord) {
         wordCount++;
@@ -353,10 +275,6 @@ const StepInputSrp: React.FC<BaseStepProps> = ({ form, srpInputRef }) => {
     }
 
     setSubmittable(true);
-  };
-
-  const handleNextClick = () => {
-    next();
   };
 
   return (
@@ -381,9 +299,7 @@ const StepInputSrp: React.FC<BaseStepProps> = ({ form, srpInputRef }) => {
           <Button
             type="primary"
             disabled={!submittable}
-            loading={false}
-            onClick={handleNextClick}
-            className="next-button"
+            onClick={() => next()}
           >
             Next
           </Button>
@@ -393,7 +309,7 @@ const StepInputSrp: React.FC<BaseStepProps> = ({ form, srpInputRef }) => {
   );
 };
 
-const ImportWalletContent: React.FC = () => {
+const ImportWalletMlDsaContent: React.FC = () => {
   const [form] = Form.useForm();
   const dispatch = useDispatch<Dispatch>();
 
@@ -412,10 +328,8 @@ const ImportWalletContent: React.FC = () => {
   const onFinish = async (formValues: any) => {
     if (!passwordInputRef.current || !srpInputRef.current || !confirmPasswordInputRef.current) return;
 
-    const { parameterSet } = formValues;
-
-    QuantumPurse.getInstance().initKeyVault(parameterSet);
-    await DB.setItem(STORAGE_KEYS.SPHINCS_PLUS_PARAM_SET, parameterSet.toString());
+    QuantumPurse.getInstance().initKeyVault(MLDSA_KEYVAULT_DEFAULT);
+    await DB.setItem(STORAGE_KEYS.SPHINCS_PLUS_PARAM_SET, MLDSA_KEYVAULT_DEFAULT.toString());
 
     let srpBytes: Uint8Array = new Uint8Array(0);
     let passwordBytes: Uint8Array = new Uint8Array(0);
@@ -423,7 +337,7 @@ const ImportWalletContent: React.FC = () => {
       srpBytes = utf8ToBytes(srpInputRef.current.value);
       passwordBytes = utf8ToBytes(passwordInputRef.current.value);
 
-      await dispatch.wallet.importWallet({ srp: srpBytes, password: passwordBytes });
+      await dispatch.wallet.importWalletMlDsa({ srp: srpBytes, password: passwordBytes });
 
       srpInputRef.current.value = '';
       passwordInputRef.current.value = '';
@@ -434,11 +348,7 @@ const ImportWalletContent: React.FC = () => {
     } catch (error) {
       Modal.error({
         title: 'Import Wallet Failed',
-        content: (
-          <div>
-            <p>{formatError(error)}</p>
-          </div>
-        ),
+        content: <div><p>{formatError(error)}</p></div>,
         centered: true,
         style: { transform: 'scale(0.9)' },
         transitionName: '',
@@ -451,34 +361,28 @@ const ImportWalletContent: React.FC = () => {
     }
   };
 
-  const { currentStep } = useContext(ImportWalletContext);
-  const { importWallet: loadingImportWallet } =
+  const { currentStep } = useContext(ImportWalletMlDsaContext);
+  const { importWalletMlDsa: loadingImport } =
     useSelector((state: RootState) => state.loading.effects.wallet);
 
-  const steps = useMemo(
-    () => [
-      {
-        key: STEP.SRP,
-        title: "Import SRP",
-        description: "Import your secret recovery phrase",
-        icon: <LockOutlined />,
-        content: <StepInputSrp form={form} srpInputRef={srpInputRef} />,
-      },
-      {
-        key: STEP.PASSWORD,
-        title: "Wallet Type & Password",
-        description: "Choose SPHINCS+ variant and create password",
-        icon: loadingImportWallet ? <LoadingOutlined /> : <KeyOutlined />,
-        content: <StepCreatePassword form={form} passwordInputRef={passwordInputRef} confirmPasswordInputRef={confirmPasswordInputRef} />,
-      },
-    ],
-    [loadingImportWallet]
-  );
+  const steps = useMemo(() => [
+    {
+      key: STEP.SRP,
+      title: "Import SRP",
+      icon: <LockOutlined />,
+      content: <StepInputSrp form={form} srpInputRef={srpInputRef} />,
+    },
+    {
+      key: STEP.PASSWORD,
+      title: "Password",
+      icon: loadingImport ? <LoadingOutlined /> : <KeyOutlined />,
+      content: <StepCreatePassword form={form} passwordInputRef={passwordInputRef} confirmPasswordInputRef={confirmPasswordInputRef} />,
+    },
+  ], [loadingImport]);
 
   return (
     <section className={cx(styles.importWallet, "panel")}>
-      <h1>Import A Wallet</h1>
-      {/* <Steps current={currentStep} items={steps} /> */}
+      <h1>Import An ML-DSA-65 Wallet</h1>
       <Form form={form} layout="vertical" onFinish={onFinish}>
         <Tabs
           items={steps.map((step) => ({
@@ -495,12 +399,12 @@ const ImportWalletContent: React.FC = () => {
   );
 };
 
-const ImportWallet: React.FC = () => {
+const ImportWalletMlDsa: React.FC = () => {
   return (
-    <ImportWalletProvider>
-      <ImportWalletContent />
-    </ImportWalletProvider>
+    <ImportWalletMlDsaProvider>
+      <ImportWalletMlDsaContent />
+    </ImportWalletMlDsaProvider>
   );
 };
 
-export default ImportWallet;
+export default ImportWalletMlDsa;
