@@ -724,12 +724,13 @@ export default class QuantumPurse extends QPSigner {
       throw(Error("Minimal transfer amount is " + ccc.fixedPointToString(tx.outputs[0].capacity)));
     }
     tx.outputs[0].capacity = ccc.fixedPointFrom(amount);
-    
+
     // cell deps
+    const lockInfo = this.sigScheme === "mldsa65" ? MLDSA_LOCK : SPHINCSPLUS_LOCK;
     tx.addCellDeps([
       {
-        outPoint: SPHINCSPLUS_LOCK.outPoint,
-        depType: SPHINCSPLUS_LOCK.depType as DepType,
+        outPoint: lockInfo.outPoint,
+        depType: lockInfo.depType as DepType,
       }
     ]);
 
@@ -768,10 +769,11 @@ export default class QuantumPurse extends QPSigner {
     );
     
     // cell deps
+    const lockInfo = this.sigScheme === "mldsa65" ? MLDSA_LOCK : SPHINCSPLUS_LOCK;
     tx.addCellDeps([
       {
-        outPoint: SPHINCSPLUS_LOCK.outPoint,
-        depType: SPHINCSPLUS_LOCK.depType as DepType,
+        outPoint: lockInfo.outPoint,
+        depType: lockInfo.depType as DepType,
       }
     ]);
 
@@ -823,10 +825,11 @@ export default class QuantumPurse extends QPSigner {
     tx.outputs[0].capacity = ccc.fixedPointFrom(amount);
 
     // cell deps
+    const lockInfo = this.sigScheme === "mldsa65" ? MLDSA_LOCK : SPHINCSPLUS_LOCK;
     tx.addCellDeps([
       {
-        outPoint: SPHINCSPLUS_LOCK.outPoint,
-        depType: SPHINCSPLUS_LOCK.depType as DepType,
+        outPoint: lockInfo.outPoint,
+        depType: lockInfo.depType as DepType,
       },
       {
         outPoint: NERVOS_DAO.outPoint,
@@ -875,17 +878,18 @@ export default class QuantumPurse extends QPSigner {
     });
 
     // cell deps
+    const lockInfo = this.sigScheme === "mldsa65" ? MLDSA_LOCK : SPHINCSPLUS_LOCK;
     tx.addCellDeps([
       {
-        outPoint: SPHINCSPLUS_LOCK.outPoint,
-        depType: SPHINCSPLUS_LOCK.depType as DepType,
+        outPoint: lockInfo.outPoint,
+        depType: lockInfo.depType as DepType,
       },
       {
         outPoint: NERVOS_DAO.outPoint,
         depType: NERVOS_DAO.depType as DepType,
       }
     ]);
-    
+
     await tx.completeInputsAll(this);
     await tx.completeFeeChangeToOutput(this, 0, feeRate);
     if (signOffline)
@@ -935,10 +939,11 @@ export default class QuantumPurse extends QPSigner {
     });
 
     // cell deps
+    const lockInfo = this.sigScheme === "mldsa65" ? MLDSA_LOCK : SPHINCSPLUS_LOCK;
     tx.addCellDeps([
       {
-        outPoint: SPHINCSPLUS_LOCK.outPoint,
-        depType: SPHINCSPLUS_LOCK.depType as DepType,
+        outPoint: lockInfo.outPoint,
+        depType: lockInfo.depType as DepType,
       },
       {
         outPoint: NERVOS_DAO.outPoint,
@@ -1008,10 +1013,11 @@ export default class QuantumPurse extends QPSigner {
     });
 
     // cell deps
+    const lockInfo = this.sigScheme === "mldsa65" ? MLDSA_LOCK : SPHINCSPLUS_LOCK;
     tx.addCellDeps([
       {
-        outPoint: SPHINCSPLUS_LOCK.outPoint,
-        depType: SPHINCSPLUS_LOCK.depType as DepType,
+        outPoint: lockInfo.outPoint,
+        depType: lockInfo.depType as DepType,
       },
       {
         outPoint: NERVOS_DAO.outPoint,

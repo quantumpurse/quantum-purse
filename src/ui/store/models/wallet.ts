@@ -189,6 +189,7 @@ export const wallet = createModel<RootModel>()({
           lockedInDao: lockInDAO.toString(),
           spxLockArgs: accountData.spxLockArgs,
           name: accountData.name,
+          scheme,
         });
       } catch (error) {
         throw error;
@@ -236,18 +237,16 @@ export const wallet = createModel<RootModel>()({
         clonedPassword.fill(0);
       }
     },
-    async getAccountBalance({ spxLockArgs }) {
+    async getAccountBalance({ spxLockArgs, scheme }, rootState) {
       if (!quantum) return null;
       try {
-        const balance = await quantum.getBalance(spxLockArgs);
-        // this.setAccountBalance({
-        //   spxLockArgs,
-        //   balance: balance.toString(),
-        // });
+        const resolvedScheme = scheme ?? rootState.wallet.current.scheme ?? "sphincs+";
+        const balance = resolvedScheme === "mldsa65"
+          ? await quantum.getMlDsaBalance(spxLockArgs)
+          : await quantum.getBalance(spxLockArgs);
         return balance.toString();
       } catch (error) {
         return "0";
-        // throw error;
       }
     },
     async switchAccount({ spxLockArgs, scheme }, rootState) {

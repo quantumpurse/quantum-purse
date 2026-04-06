@@ -78,6 +78,7 @@ const Send: React.FC = () => {
     const getBalance = async () => {
       const balance = await dispatch.wallet.getAccountBalance({
         spxLockArgs: wallet.current!.spxLockArgs,
+        scheme: wallet.current?.scheme,
       });
       setFromAccountBalance(balance);
     };
