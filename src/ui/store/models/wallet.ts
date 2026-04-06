@@ -148,12 +148,13 @@ export const wallet = createModel<RootModel>()({
         const accountsData: any = await this.loadAccounts();
         if (accountsData && accountsData.length !== 0) {
           const preservedAccountLockArgs = await DB.getItem(STORAGE_KEYS.CURRENT_ACCOUNT_POINTER);
-  
+
           if (preservedAccountLockArgs) {
-            await quantum.setAccountPointer(preservedAccountLockArgs);
+            const accountData = accountsData.find((a: any) => a.spxLockArgs === preservedAccountLockArgs);
+            await quantum.setAccountPointer(preservedAccountLockArgs, accountData?.scheme);
           } else {
             await DB.setItem(STORAGE_KEYS.CURRENT_ACCOUNT_POINTER, accountsData[0].spxLockArgs);
-            await quantum.setAccountPointer(accountsData[0].spxLockArgs);
+            await quantum.setAccountPointer(accountsData[0].spxLockArgs, accountsData[0].scheme);
           }
           this.setActive(true);
         } else {
@@ -175,10 +176,15 @@ export const wallet = createModel<RootModel>()({
           (account) => account.spxLockArgs === accountPointer
         );
         if (!accountData) return;
-        const currentBalance = await quantum.getBalance();
-        const lockInDAO = await quantum.getNervosDaoBalance();
+        const scheme = accountData.scheme ?? "sphincs+";
+        const currentBalance = scheme === "mldsa65"
+          ? await quantum.getMlDsaBalance(accountPointer as Hex)
+          : await quantum.getBalance();
+        const lockInDAO = scheme === "mldsa65"
+          ? BigInt(0)
+          : await quantum.getNervosDaoBalance();
         this.setCurrent({
-          address: quantum.getAddress(accountPointer),
+          address: quantum.getAddress(accountPointer, scheme),
           balance: currentBalance.toString(),
           lockedInDao: lockInDAO.toString(),
           spxLockArgs: accountData.spxLockArgs,
