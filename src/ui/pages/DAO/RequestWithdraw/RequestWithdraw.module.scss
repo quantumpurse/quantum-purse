@@ -106,18 +106,6 @@
   overflow-y: auto;
   max-height: 32rem;
 
-  // Fade mask at the bottom
-  mask-image: linear-gradient(
-    to bottom,
-    black calc(100% - 3rem),
-    transparent 100%
-  );
-  -webkit-mask-image: linear-gradient(
-    to bottom,
-    black calc(100% - 3rem),
-    transparent 100%
-  );
-
   // Refined scrollbar.
   &::-webkit-scrollbar {
     width: 3px;
