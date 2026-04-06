@@ -280,7 +280,11 @@ export const StepCreatePassword: React.FC = () => {
 
       const isMlDsa = parameterSet === "mldsa65";
 
-      if (!isMlDsa && parameterSet) {
+      if (isMlDsa) {
+        // KeyVault instance is required even for ML-DSA — initialise with a
+        // default SPHINCS+ variant so the object exists; it won't be used for signing.
+        QuantumPurse.getInstance().initKeyVault(SpxVariant.Sha2128S);
+      } else if (parameterSet) {
         QuantumPurse.getInstance().initKeyVault(parameterSet);
         await DB.setItem(STORAGE_KEYS.SPHINCS_PLUS_PARAM_SET, parameterSet.toString());
       }
