@@ -316,6 +316,52 @@ export const wallet = createModel<RootModel>()({
         throw error;
       }
     },
+    async importWalletMlDsa({ srp, password }) {
+      let clonedPassword: Uint8Array = new Uint8Array(password.length);
+      let inloopClonePassword: Uint8Array = new Uint8Array(password.length);
+
+      try {
+        clonedPassword = password.slice();
+        await quantum.importSeedPhrase(srp, password);
+
+        let consecutiveEmpty = 0;
+        let accountIndex = 0;
+        let lastAccountWithBalance = -1;
+        const batchSize = FIND_ACCOUNT_THRESHOLD;
+
+        while (consecutiveEmpty < batchSize) {
+          inloopClonePassword = clonedPassword.slice();
+          const accounts = await quantum.genMlDsa65AccountInBatch(
+            inloopClonePassword,
+            accountIndex,
+            batchSize
+          );
+
+          for (let i = 0; i < accounts.length; i++) {
+            const lockArgs = accounts[i];
+            const balance = await quantum.getMlDsaBalance(lockArgs as Hex);
+
+            if (balance > BigInt(0)) {
+              lastAccountWithBalance = accountIndex + i;
+              consecutiveEmpty = 0;
+            } else {
+              consecutiveEmpty++;
+              if (consecutiveEmpty >= batchSize) break;
+            }
+          }
+          accountIndex += batchSize;
+        }
+
+        const accountsToRecover = lastAccountWithBalance >= 0 ? lastAccountWithBalance + 1 : 1;
+        await quantum.recoverMlDsaAccounts(clonedPassword, accountsToRecover);
+        this.setActive(true);
+      } finally {
+        srp.fill(0);
+        password.fill(0);
+        clonedPassword.fill(0);
+        inloopClonePassword.fill(0);
+      }
+    },
     async importWallet({ srp, password }) {
       // each function call to key-vault clears the password bytes buffer,
       // so clone password for the sequential calls

@@ -1,5 +1,5 @@
 import { KeyOutlined, LoadingOutlined, LockOutlined, EyeInvisibleOutlined, EyeOutlined } from "@ant-design/icons";
-import { Button, Checkbox, Flex, Form, Modal } from "antd";
+import { Button, Checkbox, Flex, Form, Modal, Select } from "antd";
 import React, {
   createContext,
   useContext,
@@ -281,9 +281,9 @@ export const StepCreatePassword: React.FC = () => {
       const isMlDsa = parameterSet === "mldsa65";
 
       if (isMlDsa) {
-        // KeyVault instance is required even for ML-DSA — initialise with a
-        // default SPHINCS+ variant so the object exists; it won't be used for signing.
-        QuantumPurse.getInstance().initKeyVault(SpxVariant.Sha2128S);
+        const spxVariant = formValues.spxVariant;
+        QuantumPurse.getInstance().initKeyVault(spxVariant);
+        await DB.setItem(STORAGE_KEYS.SPHINCS_PLUS_PARAM_SET, spxVariant.toString());
       } else if (parameterSet) {
         QuantumPurse.getInstance().initKeyVault(parameterSet);
         await DB.setItem(STORAGE_KEYS.SPHINCS_PLUS_PARAM_SET, parameterSet.toString());
@@ -339,6 +339,40 @@ export const StepCreatePassword: React.FC = () => {
       >
         
         <ParamSetSelectorForm />
+
+        {parameterSet === "mldsa65" && (
+          <Form.Item
+            name="spxVariant"
+            label={
+              <span style={{ color: 'var(--gray-01)' }}>
+                SPHINCS+ Variant (for key storage)
+              </span>
+            }
+            rules={[{ required: true, message: "Please select a SPHINCS+ variant" }]}
+            tooltip="ML-DSA uses the same master seed as SPHINCS+. Pick the variant your key vault will use — you'll need to note it alongside your mnemonic."
+          >
+            <Select size="large" placeholder="Select a SPHINCS+ variant">
+              <Select.OptGroup label="128-bit | 36-word mnemonic">
+                <Select.Option value={SpxVariant.Sha2128S}>SHA2_128s — recommended</Select.Option>
+                <Select.Option value={SpxVariant.Sha2128F}>SHA2_128f</Select.Option>
+                <Select.Option value={SpxVariant.Shake128S}>SHAKE_128s</Select.Option>
+                <Select.Option value={SpxVariant.Shake128F}>SHAKE_128f</Select.Option>
+              </Select.OptGroup>
+              <Select.OptGroup label="192-bit | 54-word mnemonic">
+                <Select.Option value={SpxVariant.Sha2192S}>SHA2_192s</Select.Option>
+                <Select.Option value={SpxVariant.Sha2192F}>SHA2_192f</Select.Option>
+                <Select.Option value={SpxVariant.Shake192S}>SHAKE_192s</Select.Option>
+                <Select.Option value={SpxVariant.Shake192F}>SHAKE_192f</Select.Option>
+              </Select.OptGroup>
+              <Select.OptGroup label="256-bit | 72-word mnemonic">
+                <Select.Option value={SpxVariant.Sha2256S}>SHA2_256s</Select.Option>
+                <Select.Option value={SpxVariant.Sha2256F}>SHA2_256f</Select.Option>
+                <Select.Option value={SpxVariant.Shake256S}>SHAKE_256s</Select.Option>
+                <Select.Option value={SpxVariant.Shake256F}>SHAKE_256f</Select.Option>
+              </Select.OptGroup>
+            </Select>
+          </Form.Item>
+        )}
 
         <div style={{ marginBottom: '1.6rem' }}>
           <label

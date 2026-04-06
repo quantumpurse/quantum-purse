@@ -6,6 +6,7 @@ import {
   Form,
   FormInstance,
   Modal,
+  Select,
   Tabs,
 } from "antd";
 import React, {
@@ -182,6 +183,40 @@ export const StepCreatePassword: React.FC<BaseStepProps> = ({ form, passwordInpu
       <h2>Wallet Type & Password</h2>
 
       <ParamSetSelector />
+
+      {parameterSet === "mldsa65" && (
+        <Form.Item
+          name="spxVariant"
+          label={
+            <span style={{ color: 'var(--gray-01)' }}>
+              SPHINCS+ Variant (for key storage)
+            </span>
+          }
+          rules={[{ required: true, message: "Please select the SPHINCS+ variant you used" }]}
+          tooltip="Select the SPHINCS+ variant you chose when creating this wallet — required to reconstruct the key vault."
+        >
+          <Select size="large" placeholder="Select the SPHINCS+ variant you used">
+            <Select.OptGroup label="128-bit | 36-word mnemonic">
+              <Select.Option value={SpxVariant.Sha2128S}>SHA2_128s</Select.Option>
+              <Select.Option value={SpxVariant.Sha2128F}>SHA2_128f</Select.Option>
+              <Select.Option value={SpxVariant.Shake128S}>SHAKE_128s</Select.Option>
+              <Select.Option value={SpxVariant.Shake128F}>SHAKE_128f</Select.Option>
+            </Select.OptGroup>
+            <Select.OptGroup label="192-bit | 54-word mnemonic">
+              <Select.Option value={SpxVariant.Sha2192S}>SHA2_192s</Select.Option>
+              <Select.Option value={SpxVariant.Sha2192F}>SHA2_192f</Select.Option>
+              <Select.Option value={SpxVariant.Shake192S}>SHAKE_192s</Select.Option>
+              <Select.Option value={SpxVariant.Shake192F}>SHAKE_192f</Select.Option>
+            </Select.OptGroup>
+            <Select.OptGroup label="256-bit | 72-word mnemonic">
+              <Select.Option value={SpxVariant.Sha2256S}>SHA2_256s</Select.Option>
+              <Select.Option value={SpxVariant.Sha2256F}>SHA2_256f</Select.Option>
+              <Select.Option value={SpxVariant.Shake256S}>SHAKE_256s</Select.Option>
+              <Select.Option value={SpxVariant.Shake256F}>SHAKE_256f</Select.Option>
+            </Select.OptGroup>
+          </Select>
+        </Form.Item>
+      )}
 
       <div style={{ marginBottom: '1.6rem' }}>
         <label
@@ -409,34 +444,35 @@ const ImportWalletContent: React.FC = () => {
     };
   }, []);
 
-  const onFinish = async ({ parameterSet }: { parameterSet: SpxVariant }) => {
+  const onFinish = async (formValues: any) => {
     if (!passwordInputRef.current || !srpInputRef.current || !confirmPasswordInputRef.current) return;
 
-    QuantumPurse.getInstance().initKeyVault(parameterSet);
-    // store chosen param set to storage, so wallet type retains when refreshed
-    await DB.setItem(STORAGE_KEYS.SPHINCS_PLUS_PARAM_SET, parameterSet.toString());
+    const { parameterSet, spxVariant } = formValues;
+    const isMlDsa = parameterSet === "mldsa65";
+    const keyVaultVariant = isMlDsa ? spxVariant : parameterSet;
+
+    QuantumPurse.getInstance().initKeyVault(keyVaultVariant);
+    await DB.setItem(STORAGE_KEYS.SPHINCS_PLUS_PARAM_SET, keyVaultVariant.toString());
 
     let srpBytes: Uint8Array = new Uint8Array(0);
     let passwordBytes: Uint8Array = new Uint8Array(0);
     try {
-      // Convert to bytes immediately to allow referencing throughout the call stack
-      // if fail, inputs are highly not valid, so no clean up needed -> let users edit inputs again.
       srpBytes = utf8ToBytes(srpInputRef.current.value);
       passwordBytes = utf8ToBytes(passwordInputRef.current.value);
 
-      // if the following line successes, clear the input references. If not, allow to edit inputs again.
-      await dispatch.wallet.importWallet({ srp: srpBytes, password: passwordBytes });
+      if (isMlDsa) {
+        await dispatch.wallet.importWalletMlDsa({ srp: srpBytes, password: passwordBytes });
+      } else {
+        await dispatch.wallet.importWallet({ srp: srpBytes, password: passwordBytes });
+      }
 
-      // input cleaning. Either success or throw.
       srpInputRef.current.value = '';
       passwordInputRef.current.value = '';
       confirmPasswordInputRef.current.value = '';
 
-      // success, procees to load the wallet
       await dispatch.wallet.init({});
       await dispatch.wallet.loadCurrentAccount({});
     } catch (error) {
-
       Modal.error({
         title: 'Import Wallet Failed',
         content: (
@@ -450,7 +486,6 @@ const ImportWalletContent: React.FC = () => {
         maskTransitionName: '',
       });
       return;
-
     } finally {
       srpBytes.fill(0);
       passwordBytes.fill(0);

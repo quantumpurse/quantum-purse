@@ -608,6 +608,87 @@ export default class QuantumPurse extends QPSigner {
   }
 
   /**
+   * Derives ML-DSA-65 lock args in a batch without persisting them — used for
+   * account discovery during wallet import.
+   */
+  public async genMlDsa65AccountInBatch(
+    password: Uint8Array,
+    startIndex: number,
+    count: number
+  ): Promise<string[]> {
+    try {
+      if (!this.keyVault) throw new Error("KeyVault not initialized!");
+      return await this.keyVault.try_gen_ml_dsa_account_batch(password, startIndex, count);
+    } finally {
+      password.fill(0);
+    }
+  }
+
+  /**
+   * Derives and persists `count` ML-DSA-65 accounts from index 0, registering
+   * each with the light client for balance tracking.
+   */
+  public async recoverMlDsaAccounts(password: Uint8Array, count: number): Promise<void> {
+    try {
+      if (!this.keyVault) throw new Error("KeyVault not initialized!");
+      const lockArgsList = await this.keyVault.recover_ml_dsa_accounts(password, count) as Hex[];
+
+      if (!this.hasClientStarted) {
+        logger("error", "Light client has not initialized");
+        return;
+      }
+
+      const startBlocksPromises = lockArgsList.map(async (lockArgs) => {
+        const lock = {
+          codeHash: MLDSA_LOCK.codeHash,
+          hashType: MLDSA_LOCK.hashType,
+          args: lockArgs as Hex,
+        };
+        const searchKey: ClientIndexerSearchKeyLike = {
+          scriptType: "lock",
+          script: lock,
+          scriptSearchMode: "prefix",
+        };
+
+        let startBlock = BigInt(0);
+        const response = await this.client.getTransactions(searchKey, "asc", 1);
+        if (response.transactions && response.transactions.length > 0) {
+          startBlock = response.transactions[0].blockNumber - BigInt(1);
+        }
+        return startBlock;
+      });
+
+      const startBlocks = await Promise.all(startBlocksPromises);
+      await this.setSellectiveSyncFilter(lockArgsList, startBlocks, LightClientSetScriptsCommand.All);
+    } finally {
+      password.fill(0);
+    }
+  }
+
+  /**
+   * Gets available balance for an ML-DSA-65 account via the light client.
+   */
+  public async getMlDsaBalance(lockArgs: Hex): Promise<bigint> {
+    if (!this.hasClientStarted) {
+      logger("error", "Light client has not initialized");
+      return Promise.resolve(BigInt(0));
+    }
+
+    const lock = {
+      codeHash: MLDSA_LOCK.codeHash,
+      hashType: MLDSA_LOCK.hashType,
+      args: lockArgs,
+    };
+    const searchKey: ClientIndexerSearchKeyLike = {
+      scriptType: "lock",
+      script: lock,
+      scriptSearchMode: "prefix",
+      filter: { outputDataLenRange: [0, 1] },
+    };
+    return await this.client.getCellsCapacity(searchKey);
+  }
+
+  /**
    * CKB transfer from the current Quantum Purse address.
    *
    * @param to - The recipient's address.
