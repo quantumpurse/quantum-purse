@@ -178,12 +178,16 @@ export const wallet = createModel<RootModel>()({
     async createAccount(payload: { password: Uint8Array }, rootState) {
       try {
         await quantum.genAccount(payload.password);
-
-        // Load accounts after creating a new account
         const accountsData: any = await this.loadAccounts();
-
-        // The new account is the last account in the accountsData array
-        // Return it to the caller to explorer the new account
+        return accountsData?.at(-1);
+      } finally {
+        payload.password.fill(0);
+      }
+    },
+    async createMlDsaAccount(payload: { password: Uint8Array }, rootState) {
+      try {
+        await quantum.genMlDsa65Account(payload.password);
+        const accountsData: any = await this.loadAccounts();
         return accountsData?.at(-1);
       } finally {
         payload.password.fill(0);

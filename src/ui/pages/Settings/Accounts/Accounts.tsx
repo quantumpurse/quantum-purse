@@ -5,9 +5,10 @@ import {
   Flex,
   Input,
   Modal,
+  Segmented,
   Spin,
 } from "antd";
-import React, { useRef } from "react";
+import React, { useRef, useState } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import {
   Authentication,
@@ -15,6 +16,7 @@ import {
 } from "../../../components";
 import { useAccountSearch } from "../../../hooks/useAccountSearch";
 import { Dispatch, RootState } from "../../../store";
+import { SigScheme } from "../../../store/models/interface";
 import { cx, formatError } from "../../../utils/methods";
 import styles from "./Accounts.module.scss";
 import { AccountItem } from "../../../components/account-item/account_item";
@@ -24,6 +26,7 @@ const Accounts: React.FC = () => {
   const wallet = useSelector((state: RootState) => state.wallet);
   const {
     createAccount: loadingCreateAccount,
+    createMlDsaAccount: loadingCreateMlDsaAccount,
     loadAccounts: loadingLoadAccounts,
     switchAccount: loadingSwitchAccount,
   } = useSelector((state: RootState) => state.loading.effects.wallet);
@@ -32,10 +35,17 @@ const Accounts: React.FC = () => {
     useAccountSearch(wallet.accounts);
 
   const authenticationRef = useRef<AuthenticationRef>(null);
+  const [selectedScheme, setSelectedScheme] = useState<SigScheme>("sphincs+");
+
+  const isCreating = loadingCreateAccount || loadingCreateMlDsaAccount;
 
   const createAccountHandler = async (password: Uint8Array) => {
     try {
-      await dispatch.wallet.createAccount({ password });
+      if (selectedScheme === "mldsa65") {
+        await dispatch.wallet.createMlDsaAccount({ password });
+      } else {
+        await dispatch.wallet.createAccount({ password });
+      }
     } catch (error) {
       Modal.error({
         title: 'Failed to Create Account',
@@ -97,7 +107,7 @@ const Accounts: React.FC = () => {
         justify="space-between"
         align="center"
         gap={8}
-        style={{ marginBottom: 16, marginTop: 4 }}
+        style={{ marginBottom: 8, marginTop: 4 }}
       >
         <Input.Search
           placeholder="Search by name or address"
@@ -110,11 +120,22 @@ const Accounts: React.FC = () => {
         <Button
           type="primary"
           onClick={() => authenticationRef.current?.open()}
-          loading={loadingCreateAccount}
-          disabled={loadingCreateAccount || loadingLoadAccounts}
+          loading={isCreating}
+          disabled={isCreating || loadingLoadAccounts}
         >
           Gen New Account
         </Button>
+      </Flex>
+      <Flex justify="flex-end" style={{ marginBottom: 16 }}>
+        <Segmented
+          value={selectedScheme}
+          onChange={(v) => setSelectedScheme(v as SigScheme)}
+          options={[
+            { label: "SPHINCS+", value: "sphincs+" },
+            { label: "ML-DSA-65", value: "mldsa65" },
+          ]}
+          size="small"
+        />
       </Flex>
       <div className={styles.accountListContainer}>
         <Spin size="large" spinning={loadingLoadAccounts}>
