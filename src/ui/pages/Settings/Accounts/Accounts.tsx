@@ -81,7 +81,7 @@ const Accounts: React.FC = () => {
 
     return (
       <ul className="account-container">
-        {filteredAccounts.map(({ address, name, spxLockArgs }, index) => (
+        {filteredAccounts.map(({ address, name, spxLockArgs, scheme }, index) => (
           <React.Fragment key={spxLockArgs}>
             {index > 0 && (
               <Divider className="divider" key={`divider-${index}`} />
@@ -91,6 +91,7 @@ const Accounts: React.FC = () => {
               address={address!}
               name={name}
               spxLockArgs={spxLockArgs}
+              scheme={scheme}
               isLoading={loadingSwitchAccount}
             />
           </React.Fragment>

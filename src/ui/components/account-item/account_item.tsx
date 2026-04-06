@@ -30,6 +30,7 @@ interface AccountItemProps extends React.HTMLAttributes<HTMLLIElement> {
   address: string;
   name: string;
   spxLockArgs: string;
+  scheme?: "sphincs+" | "mldsa65";
   hasTools?: boolean;
   copyable?: boolean;
   showBalance?: boolean;
@@ -40,6 +41,7 @@ export const AccountItem: React.FC<AccountItemProps> = ({
   address,
   name,
   spxLockArgs,
+  scheme = "sphincs+",
   hasTools = true,
   copyable = true,
   showBalance = false,
@@ -82,7 +84,7 @@ export const AccountItem: React.FC<AccountItemProps> = ({
       <li {...props} className={cx(styles.accountItem)}>
         <div
           className="account-info"
-          onClick={() => (!isActive && isWalletPage) && dispatch.wallet.switchAccount({ spxLockArgs })}
+          onClick={() => (!isActive && isWalletPage) && dispatch.wallet.switchAccount({ spxLockArgs, scheme })}
         >
           <p className="name">
             {name}{" "}

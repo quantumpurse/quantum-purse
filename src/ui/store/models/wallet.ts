@@ -9,6 +9,7 @@ interface IAccount {
   name: string;
   address: string | null;
   spxLockArgs: string;
+  scheme?: "sphincs+" | "mldsa65";
   balance?: string;
   lockedInDao?: string;
 }
@@ -234,9 +235,9 @@ export const wallet = createModel<RootModel>()({
         // throw error;
       }
     },
-    async switchAccount({ spxLockArgs }, rootState) {
+    async switchAccount({ spxLockArgs, scheme }, rootState) {
       try {
-        await quantum.setAccountPointer(spxLockArgs);
+        await quantum.setAccountPointer(spxLockArgs, scheme);
         this.loadCurrentAccount({});
         await DB.setItem(STORAGE_KEYS.CURRENT_ACCOUNT_POINTER, spxLockArgs);
       } catch (error) {
