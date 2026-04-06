@@ -322,16 +322,6 @@ export default class QuantumPurse extends QPSigner {
     };
   }
 
-  /**
-   * Gets the blockchain address.
-   * @param spxLockArgs - The sphincs+ lock script arguments.
-   * @returns The CKB address as a string.
-   * @throws Error if no account pointer is set by default (see `getLockScript` for details).
-   */
-  public getAddress(spxLockArgs?: BytesLike): string {
-    const lock = this.getLockScript(spxLockArgs);
-    return Address.fromScript(lock, this.client).toString();
-  }
 
   /**
    * Gets account available (transferable) balance via light client protocol.

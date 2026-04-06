@@ -93,7 +93,7 @@
     "@rematch/loading": "2.1.2",
     "antd": "6.3.5",
     "qrcode.react": "4.2.0",
-    "quantum-purse-key-vault": "0.3.1",
+    "quantum-purse-key-vault": "file:../key-vault-wasm/dist",
     "react": "19.2.4",
     "react-dom": "19.2.4",
     "react-redux": "9.2.0",
