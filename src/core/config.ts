@@ -1,6 +1,6 @@
 // MAIN_NET flag passed in npm build command.
 export const IS_MAIN_NET: boolean = (process.env.MAIN_NET === "true");
-export const IS_LC: boolean = false;
+export const IS_LC: boolean = true;
 
 // Quantum-resistant Lock Script contract
 export const SPHINCSPLUS_LOCK = IS_MAIN_NET
