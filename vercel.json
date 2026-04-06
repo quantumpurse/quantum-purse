@@ -1,4 +1,6 @@
 {
+    "buildCommand": "npm run build:web",
+    "outputDirectory": "dist",
     "headers": [
         {
             "source": "/(.*)",
