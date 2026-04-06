@@ -121,14 +121,17 @@ export default class QuantumPurse extends QPSigner {
   */
   private async setSellectiveSyncFilterInternal(
     spxLockArgs: Hex,
-    firstAccount: boolean
+    firstAccount: boolean,
+    scheme: SigScheme = "sphincs+"
   ): Promise<void> {
     if (!this.hasClientStarted) {
       logger("error", "Light client has not initialized");
       return Promise.resolve();
     }
 
-    const lock = this.getLockScript(spxLockArgs);
+    const lock = scheme === "mldsa65"
+      ? { codeHash: MLDSA_LOCK.codeHash, hashType: MLDSA_LOCK.hashType, args: spxLockArgs }
+      : this.getLockScript(spxLockArgs);
     const storageKey = QuantumPurse.START_BLOCK_PREFIX + "_" + spxLockArgs.slice(0, 16);
     let startingBlock: bigint = (await this.client!.getTipHeader()).number;
 
@@ -440,7 +443,7 @@ export default class QuantumPurse extends QPSigner {
 
       // Register the new lock script with the light client for balance tracking
       const existingCount = (await this.getAllMlDsaLockArgs()).length;
-      await this.setSellectiveSyncFilterInternal(lockArgs as Hex, existingCount <= 1);
+      await this.setSellectiveSyncFilterInternal(lockArgs as Hex, existingCount <= 1, "mldsa65");
 
       return { lockArgs, address };
     } finally {
