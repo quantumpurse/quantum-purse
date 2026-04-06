@@ -231,6 +231,7 @@ export default class QuantumPurse extends QPSigner {
       return;
     }
     await this.client.fetchTransaction(SPHINCSPLUS_LOCK.outPoint.txHash);
+    await this.client.fetchTransaction(MLDSA_LOCK.outPoint.txHash);
   }
 
   /**
