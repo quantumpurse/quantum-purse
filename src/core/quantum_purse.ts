@@ -282,7 +282,7 @@ export default class QuantumPurse extends QPSigner {
    * @param setMode The mode to set the scripts (All, Partial, Delete).
    * @throws Error light client is not initialized.
    */
-  public async setSellectiveSyncFilter(spxLockArgsArray: Hex[], startingBlocks: bigint[], setMode: LightClientSetScriptsCommand) {
+  public async setSellectiveSyncFilter(spxLockArgsArray: Hex[], startingBlocks: bigint[], setMode: LightClientSetScriptsCommand, scheme: SigScheme = "sphincs+") {
     if (!this.hasClientStarted) throw new Error("Light client has not initialized");
 
     if (spxLockArgsArray.length !== startingBlocks.length) {
@@ -296,7 +296,9 @@ export default class QuantumPurse extends QPSigner {
 
     const filters: ScriptStatus[] = spxLockArgsArray.map((spxLockArgs, index) => ({
       blockNumber: startingBlocks[index],
-      script: this.getLockScript(spxLockArgs),
+      script: scheme === "mldsa65"
+        ? { codeHash: MLDSA_LOCK.codeHash, hashType: MLDSA_LOCK.hashType, args: spxLockArgs }
+        : this.getLockScript(spxLockArgs),
       scriptType: "lock"
     }));
 
@@ -662,7 +664,7 @@ export default class QuantumPurse extends QPSigner {
       });
 
       const startBlocks = await Promise.all(startBlocksPromises);
-      await this.setSellectiveSyncFilter(lockArgsList, startBlocks, LightClientSetScriptsCommand.All);
+      await this.setSellectiveSyncFilter(lockArgsList, startBlocks, LightClientSetScriptsCommand.All, "mldsa65");
     } finally {
       password.fill(0);
     }
