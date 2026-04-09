@@ -15,11 +15,10 @@ import { quantum } from "../../../store/models/wallet";
 import {
   createBindingSession,
   completeBinding,
-  verifyBindingPayload,
   fetchServerPublicKey,
-  type AddressBindingActivity,
+  AddressBindingActivity,
   type AccountInfo,
-} from "../../../../core/dao_v2";
+} from "../../../../core/daov2/dao_v2";
 import { Hex } from "@ckb-ccc/core";
 import { Authentication, AuthenticationRef } from "../../../components";
 
@@ -95,7 +94,7 @@ const XXX: React.FC = () => {
       // Fetch the server's public key and verify the payload before showing
       // the confirmation modal. This ensures the wallet only signs verified data.
       const serverPublicKey = await fetchServerPublicKey();
-      await verifyBindingPayload(response.payload, allAddresses, serverPublicKey);
+      await AddressBindingActivity.verifyBinding(response.payload as any, serverPublicKey, allAddresses);
 
       // Filter lockScriptArgs to match only the unbound addresses.
       const unboundLockArgs: string[] = [];
