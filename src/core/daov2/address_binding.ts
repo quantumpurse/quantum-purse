@@ -1,0 +1,141 @@
+import { HashBuilder } from "./hash_builder";
+import { Ed25519Proof } from "./ed25519_proof";
+
+/// Address binding/unbinding activity model.
+///
+/// Mirrors BE's `models/address_binding.rs`. Common governance fields plus
+/// address binding-specific fields (ckb_addresses, bind_signatures, is_binding).
+///
+/// `verify()` is the single entry point: it parses the BE response,
+/// rebuilds the activity hash, verifies it matches, and verifies the server
+/// proof. If it returns, the payload is verified. If not, it throws.
+
+export class AddressBindingActivity {
+	static readonly ACTIVITY_TYPE = "address_binding";
+
+	readonly activity_type: string;
+	readonly activity_hash: string;
+	readonly previous_hash: string | null;
+	readonly user_id: string;
+	readonly user_proof: string | null;
+	readonly server_proof: string | null;
+	readonly ckb_block_height: number | null;
+	readonly ckb_addresses: string[];
+	readonly bind_signatures: string[];
+	readonly is_binding: boolean;
+	readonly created_at: string;
+	readonly expired_at: string;
+
+	private constructor(payload: AddressBindingActivity) {
+		this.activity_type = payload.activity_type;
+		this.activity_hash = payload.activity_hash;
+		this.previous_hash = payload.previous_hash;
+		this.user_id = payload.user_id;
+		this.user_proof = payload.user_proof;
+		this.server_proof = payload.server_proof;
+		this.ckb_block_height = payload.ckb_block_height;
+		this.ckb_addresses = payload.ckb_addresses;
+		this.bind_signatures = payload.bind_signatures;
+		this.is_binding = payload.is_binding;
+		this.created_at = payload.created_at;
+		this.expired_at = payload.expired_at;
+	}
+
+	/**
+	 * Construct from a BE challenge response payload, verifying hash integrity
+	 * and server proof. Throws on any validation failure.
+	 */
+	static async verify(
+		payload: Record<string, unknown>,
+		serverPublicKeyHex: string,
+	): Promise<void> {
+		const activity = new AddressBindingActivity(
+			payload as unknown as AddressBindingActivity,
+		);
+
+		// Rebuild the activity hash and verify it matches the declared hash.
+		const rebuilt = await activity.computeHash();
+		if (rebuilt !== activity.activity_hash) {
+			throw new Error(
+				"Activity hash mismatch: the server's payload does not match its " +
+					"declared hash. The data may have been tampered with.",
+			);
+		}
+
+		// Verify the server's ed25519 proof over the activity hash.
+		if (!activity.server_proof) {
+			throw new Error("Missing server proof.");
+		}
+		const proof = Ed25519Proof.fromHex(activity.server_proof);
+		await proof.verifyWithKey(activity.activity_hash, serverPublicKeyHex);
+	}
+
+	/**
+	 * Verify a binding challenge response from the server. Throws on any failure.
+	 *
+	 * Checks: hash integrity, server proof, addresses match what was sent,
+	 * is_binding is true, and activity hasn't expired.
+	 */
+	static async verifyBinding(
+		payload: Record<string, unknown>,
+		serverPublicKeyHex: string,
+		sentAddresses: string[],
+	): Promise<void> {
+		await AddressBindingActivity.verify(payload, serverPublicKeyHex);
+
+		const activity = payload as unknown as AddressBindingActivity;
+
+		// Verify addresses are a subset of what the wallet sent.
+		const sentSet = new Set(sentAddresses);
+		for (const addr of activity.ckb_addresses) {
+			if (!sentSet.has(addr)) {
+				throw new Error(
+					`Server returned an address the wallet did not send: ${addr}`,
+				);
+			}
+		}
+
+		// Only binding activities should come through this path.
+		if (!activity.is_binding) {
+			throw new Error(
+				"Server returned an unbinding activity — refusing to sign.",
+			);
+		}
+
+		// Verify activity hasn't expired.
+		// Chrono's serde serializes NaiveDateTime without timezone — append "Z" to parse as UTC.
+		const expiredAt = new Date(activity.expired_at + "Z");
+		if (expiredAt <= new Date()) {
+			throw new Error(
+				"The binding activity has already expired. Please retry.",
+			);
+		}
+	}
+
+	/**
+	 * Deterministic SHA-256 hash over the activity fields.
+	 * Must match BE's AddressBindingActivity::compute_hash() byte-for-byte.
+	 *
+	 * Field order: activity_type, previous_hash, user_id, ckb_block_height (i64 LE),
+	 * each address, is_binding (as 0/1 byte), created_at, expired_at.
+	 */
+	private async computeHash(): Promise<string> {
+		const builder = new HashBuilder()
+			.str(this.activity_type)
+			.optStr(this.previous_hash)
+			.str(this.user_id)
+			.i64(this.ckb_block_height);
+
+		for (const addr of this.ckb_addresses) {
+			builder.str(addr);
+		}
+
+		// is_binding as a single byte (matching BE's `&[self.is_binding as u8]`).
+		builder.byte(this.is_binding ? 1 : 0);
+
+		builder.datetime(this.created_at);
+		builder.datetime(this.expired_at);
+
+		return builder.digest();
+	}
+}
