@@ -45,9 +45,14 @@ function testnetToMainnet() {
 }
 
 function createWindow() {
+    // On Windows, the native title bar (~30px) reduces the available content area,
+    // so we add extra height to compensate and avoid layout compression.
+    const titleBarHeight = process.platform === 'win32' ? 30 : 0;
+    const windowHeight = 590 + titleBarHeight;
+
     const mainWindow = new BrowserWindow({
         width: 905,
-        height: 590,
+        height: windowHeight,
         webPreferences: {
             nodeIntegration: false,
             contextIsolation: true,
@@ -56,7 +61,7 @@ function createWindow() {
         },
     });
 
-    mainWindow.setMinimumSize(905, 590);
+    mainWindow.setMinimumSize(905, windowHeight);
     // mainWindow.setMaximumSize(905, 650);
     mainWindow.loadFile(path.join(__dirname, 'dist', 'index.html'));
 

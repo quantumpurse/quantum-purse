@@ -3,7 +3,7 @@
   flex-direction: column;
   background: rgba(255, 255, 255, 0.02);
   backdrop-filter: blur(12px);
-  height: 45rem;
+  min-height: 45rem;
 
   .content {
     display: flex;
