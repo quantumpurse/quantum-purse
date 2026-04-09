@@ -12,7 +12,14 @@ import React, { useState, useRef, useEffect } from "react";
 import { cx, formatError } from "../../../utils/methods";
 import styles from "./XXX.module.scss";
 import { quantum } from "../../../store/models/wallet";
-import { createBindingSession, completeBinding } from "../../../../core/dao_v2";
+import {
+  createBindingSession,
+  completeBinding,
+  verifyBindingPayload,
+  fetchServerPublicKey,
+  type AddressBindingActivity,
+  type AccountInfo,
+} from "../../../../core/dao_v2";
 import { Hex } from "@ckb-ccc/core";
 import { Authentication, AuthenticationRef } from "../../../components";
 
@@ -22,8 +29,8 @@ const XXX: React.FC = () => {
   const [apiKey, setApiKey] = useState<string>("");
   const [isBinding, setIsBinding] = useState<boolean>(false);
   const [accountInfoModalVisible, setAccountInfoModalVisible] = useState<boolean>(false);
-  const [accountInfo, setAccountInfo] = useState<any>(null);
-  const [challenges, setChallenges] = useState<any[]>([]);
+  const [accountInfo, setAccountInfo] = useState<AccountInfo | null>(null);
+  const [bindingPayload, setBindingPayload] = useState<AddressBindingActivity | null>(null);
   const [addressesToBind, setAddressesToBind] = useState<string[]>([]);
   const [lockScriptArgs, setLockScriptArgs] = useState<string[]>([]);
   const authenticationRef = useRef<AuthenticationRef>(null);
@@ -62,55 +69,50 @@ const XXX: React.FC = () => {
     setIsBinding(true);
 
     try {
-      // Get all lock script arguments
-      const lockScriptArgs = await quantum.getAllLockScriptArgs();
-
-      // Convert each lock script arg to an address
-      const addresses = lockScriptArgs.map(lockArg =>
+      // Get all lock script arguments and convert to addresses.
+      const allLockArgs = await quantum.getAllLockScriptArgs();
+      const allAddresses = allLockArgs.map(lockArg =>
         quantum.getAddress(lockArg as Hex)
       );
 
-      // Store addresses and lock script args for later use
-      setAddressesToBind(addresses);
-      setLockScriptArgs(lockScriptArgs);
+      // Request binding session from the server.
+      const response = await createBindingSession(apiKey, allAddresses);
 
-      // Call createBindingSession with the API key, addresses, and variant
-      const response = await createBindingSession(apiKey, addresses);
-
-      // Handle the response - check for account_info and challenges
-      if (response.account_info && response.challenges) {
-        // Check if there are any challenges (unbound addresses)
-        if (response.challenges.length === 0) {
-          message.info({
-            content: "All your addresses are already bound to this XXX account.",
-            duration: 5
-          });
-          return;
-        }
-
-        // Store the account info and challenges
-        setAccountInfo(response.account_info);
-        setChallenges(response.challenges);
-
-        // Only store the addresses that have challenges (unbound ones)
-        const unboundAddresses = response.challenges.map((c: any) => c.address);
-        setAddressesToBind(unboundAddresses);
-
-        // Filter lockScriptArgs to match the unbound addresses
-        const unboundLockArgs = [];
-        for (let i = 0; i < addresses.length; i++) {
-          if (unboundAddresses.includes(addresses[i])) {
-            unboundLockArgs.push(lockScriptArgs[i]);
-          }
-        }
-
-        setLockScriptArgs(unboundLockArgs);
-
-        // Show the account confirmation modal
-        setAccountInfoModalVisible(true);
-      } else {
-        throw new Error("Invalid response from server - missing account info or challenges");
+      if (!response.payload || !response.account_info) {
+        throw new Error("Invalid response from server — missing payload or account info.");
       }
+
+      // The payload's ckb_addresses are the unbound subset (BE already filtered).
+      const unboundAddresses = response.payload.ckb_addresses;
+      if (unboundAddresses.length === 0) {
+        message.info({
+          content: "All your addresses are already bound to this account.",
+          duration: 5,
+        });
+        return;
+      }
+
+      // Fetch the server's public key and verify the payload before showing
+      // the confirmation modal. This ensures the wallet only signs verified data.
+      const serverPublicKey = await fetchServerPublicKey();
+      await verifyBindingPayload(response.payload, allAddresses, serverPublicKey);
+
+      // Filter lockScriptArgs to match only the unbound addresses.
+      const unboundLockArgs: string[] = [];
+      for (let i = 0; i < allAddresses.length; i++) {
+        if (unboundAddresses.includes(allAddresses[i])) {
+          unboundLockArgs.push(allLockArgs[i]);
+        }
+      }
+
+      // Store verified data for the confirmation step.
+      setAccountInfo(response.account_info);
+      setBindingPayload(response.payload);
+      setAddressesToBind(unboundAddresses);
+      setLockScriptArgs(unboundLockArgs);
+
+      // Show the account confirmation modal.
+      setAccountInfoModalVisible(true);
     } catch (error) {
       console.error("Bind error:", error);
       Modal.error({
@@ -139,47 +141,54 @@ const XXX: React.FC = () => {
       return;
     }
 
-    try {
-      // Show loading state
-      const loadingMessage = message.loading('Signing challenges and completing address binding...', 0);
+    if (!bindingPayload) {
+      message.error("No binding payload available. Please retry.");
+      return;
+    }
 
-      // Use the completeBinding function to handle the entire flow
+    let dismissLoading: (() => void) | null = null;
+
+    try {
+      // Show loading state (duration 0 = infinite, dismissed manually).
+      dismissLoading = message.loading('Signing challenges and completing address binding...', 0);
+
+      // Derive challenges, sign them, and submit the completed activity.
       const result = await completeBinding(
         apiKey,
-        challenges,     // Pass the already-fetched challenges
+        bindingPayload,
         lockScriptArgs,
-        quantum
+        quantum,
       );
 
-      // Close loading message
-      loadingMessage();
-
-      // Close modal
+      // Close modal.
       setAccountInfoModalVisible(false);
 
-      // Show success message
+      // Show success message.
       const boundCount = result.bound_addresses ? result.bound_addresses.length : addressesToBind.length;
       message.success({
-        content: `Successfully bound ${boundCount} address(es) to your XXX account!`,
-        duration: 5
+        content: `Successfully bound ${boundCount} address(es) to your account!`,
+        duration: 5,
       });
 
-      // Clear state after successful binding
+      // Clear state after successful binding.
       setAccountInfo(null);
-      setChallenges([]);
+      setBindingPayload(null);
       setAddressesToBind([]);
       setLockScriptArgs([]);
-      setApiKey("");  // Clear the API key after successful binding
-
-      console.log("Binding result:", result);
+      setApiKey("");
 
     } catch (error) {
       console.error("Failed to complete address binding:", error);
-      message.error({
-        content: `Failed to bind addresses: ${formatError(error)}`,
-        duration: 0,  // Don't auto-dismiss error messages
+      Modal.error({
+        title: 'Failed to Bind Addresses',
+        content: formatError(error),
+        centered: true,
+        style: { transform: 'scale(0.9)' },
+        transitionName: '',
+        maskTransitionName: '',
       });
     } finally {
+      dismissLoading?.();
       setIsAuthenticating(false);
       authenticationRef.current?.close();
     }
@@ -197,7 +206,7 @@ const XXX: React.FC = () => {
   const handleCancelBinding = () => {
     setAccountInfoModalVisible(false);
     setAccountInfo(null);
-    setChallenges([]);
+    setBindingPayload(null);
     setAddressesToBind([]);
     setLockScriptArgs([]);
     message.info("Address binding cancelled");
@@ -274,13 +283,6 @@ const XXX: React.FC = () => {
                 <Text strong>Email:</Text>
                 <Text>{accountInfo.email}</Text>
               </Flex>
-
-              {accountInfo.display_name && (
-                <Flex justify="space-between">
-                  <Text strong>Display Name:</Text>
-                  <Text>{accountInfo.display_name}</Text>
-                </Flex>
-              )}
 
               <Flex justify="space-between">
                 <Text strong>User ID:</Text>
