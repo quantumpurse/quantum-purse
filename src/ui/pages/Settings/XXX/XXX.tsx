@@ -19,6 +19,7 @@ import {
   AddressBindingActivity,
   type AccountInfo,
 } from "../../../../core/daov2/dao_v2";
+import { downloadReceipt } from "../../../../core/daov2/receipt";
 import { Hex } from "@ckb-ccc/core";
 import { Authentication, AuthenticationRef } from "../../../components";
 
@@ -152,18 +153,21 @@ const XXX: React.FC = () => {
       dismissLoading = message.loading('Signing challenges and completing address binding...', 0);
 
       // Derive challenges, sign them, and submit the completed activity.
-      const result = await completeBinding(
+      const { response, activity } = await completeBinding(
         apiKey,
         bindingPayload,
         lockScriptArgs,
         quantum,
       );
 
+      // Download binding receipt for fraud-proof archival.
+      downloadReceipt(activity, response.commit_hash, `binding-${Date.now()}.json`);
+
       // Close modal.
       setAccountInfoModalVisible(false);
 
       // Show success message.
-      const boundCount = result.bound_addresses ? result.bound_addresses.length : addressesToBind.length;
+      const boundCount = response.bound_addresses ? response.bound_addresses.length : addressesToBind.length;
       message.success({
         content: `Successfully bound ${boundCount} address(es) to your account!`,
         duration: 5,

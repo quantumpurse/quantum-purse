@@ -133,5 +133,6 @@ export async function completeBinding(
 		throw new Error(error.message || `Verification failed: ${verifyResponse.status}`);
 	}
 
-	return verifyResponse.json();
+	const response = await verifyResponse.json();
+	return { response, activity: completedActivity };
 }
