@@ -1,6 +1,5 @@
 // Download a governance activity receipt as a JSON file.
 // The receipt includes the git commit hash for verification against the archive.
-//todo: seems duplicated with the download function in quantum-purse/src/ui/utils/methods.ts.
 export function downloadReceipt(
 	activity: Record<string, unknown>,
 	commitHash: string,
