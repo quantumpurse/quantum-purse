@@ -32,8 +32,8 @@ export const PASSWORD_ENTROPY_THRESHOLDS = {
 export const CKB_DECIMALS = 10**8; // 1 CKB = 10^8 Shannons
 export const CKB_UNIT = "CKB";
 export const CKB_EXPLORER_URL = IS_MAIN_NET
-  ? "https://explorer.app5.org"
-  : "https://testnet.explorer.app5.org";
+  ? "https://explorer.nervos.org"
+  : "https://testnet.explorer.nervos.org";
 
 export const STORAGE_KEYS = {
   WALLET_STEP: "wallet-step",
