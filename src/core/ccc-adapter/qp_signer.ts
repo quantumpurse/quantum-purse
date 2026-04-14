@@ -13,10 +13,12 @@ import {
   Script,
   hexFrom,
   WitnessArgs,
-  HashTypeLike
+  HashTypeLike,
+  ClientPublicMainnet,
+  ClientPublicTestnet
 } from "@ckb-ccc/core";
 import { QPClient } from "./qp_client";
-import { IS_MAIN_NET } from "../config";
+import { IS_MAIN_NET, IS_LC } from "../config";
 import __wbg_init, { KeyVault, SpxVariant } from "quantum-purse-key-vault";
 import { get_ckb_tx_message_all_hash } from "../utils";
 
@@ -30,12 +32,20 @@ export class QPSigner extends Signer {
   ) => void;
 
   constructor(spxLockInfo: { codeHash: BytesLike, hashType: HashTypeLike }) {
-    super(new QPClient());
+    if (IS_LC) {
+      super(new QPClient());
+    } else {
+      if (IS_MAIN_NET) {
+        super(new ClientPublicMainnet());
+      } else {
+        super(new ClientPublicTestnet());
+      }
+    }
     this.spxLock = spxLockInfo;
   }
 
-  override get client(): QPClient {
-    return this.client_ as QPClient;
+  override get client() {
+    return this.client_;
   }
 
   async setAccountPointer(accPointer: BytesLike) {

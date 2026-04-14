@@ -91,11 +91,11 @@ export const wallet = createModel<RootModel>()({
       if (!quantum) return;
       try {
         const accounts = await quantum.getAllLockScriptArgs();
-        const accountsData = accounts.map((account, index) => ({
+        const accountsData = await Promise.all(accounts.map(async (account, index) => ({
           name: `Account ${index + 1}`,
           spxLockArgs: account,
-          address: quantum.getAddress(account as Hex),
-        }));
+          address: (await quantum.getAddress(account as Hex)),
+        })));
         this.setAccounts(accountsData);
         return accountsData;
       } catch (error) {
@@ -165,7 +165,7 @@ export const wallet = createModel<RootModel>()({
         const currentBalance = await quantum.getBalance();
         const lockInDAO = await quantum.getNervosDaoBalance();
         this.setCurrent({
-          address: quantum.getAddress(accountPointer),
+          address: (await quantum.getAddress(accountPointer)),
           balance: currentBalance.toString(),
           lockedInDao: lockInDAO.toString(),
           spxLockArgs: accountData.spxLockArgs,

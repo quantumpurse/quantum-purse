@@ -23,16 +23,4 @@
 
 .accountListContainer {
   overflow: auto;
-
-  // Fade mask at the bottom
-  mask-image: linear-gradient(
-    to bottom,
-    black calc(100% - 3rem),
-    transparent 100%
-  );
-  -webkit-mask-image: linear-gradient(
-    to bottom,
-    black calc(100% - 3rem),
-    transparent 100%
-  );
 }

@@ -19,6 +19,7 @@ import {
 } from "@ckb-ccc/core";
 import { getClaimEpoch } from "./epoch";
 import { QPSigner } from "./ccc-adapter/qp_signer";
+import { QPClient } from "./ccc-adapter/qp_client";
 import { DB } from "./db";
 import { logger } from './logger';
 
@@ -117,11 +118,14 @@ export default class QuantumPurse extends QPSigner {
   /* Helper function for genAccount that tells the light client which account and from what block they start making transactions. 
    * In account generation, each account's lightclient starting block will be set to the tip block, naturally. Designed to be called
    * when accounts are created gradually via genAccount (when users want to create a new account)
+   * Designed for light client only
   */
   private async setSellectiveSyncFilterInternal(
     spxLockArgs: Hex,
     firstAccount: boolean
   ): Promise<void> {
+    if (!(this.client instanceof QPClient)) return;
+
     if (!this.hasClientStarted) {
       logger("error", "Light client has not initialized");
       return Promise.resolve();
@@ -139,8 +143,10 @@ export default class QuantumPurse extends QPSigner {
     );
   }
 
-  /* Calculate sync status */
+  /* Calculate sync status. Designed for light client only */
   private async getSyncStatus() {
+    if (!(this.client instanceof QPClient)) return;
+
     if (!this.hasClientStarted) {
       logger("error", "Light client has not initialized");
       return {
@@ -190,8 +196,10 @@ export default class QuantumPurse extends QPSigner {
     };
   }
 
-  /* Start light client thread*/
+  /* Start light client thread. Designed for light client only */
   private async startLightClient() {
+    if (!(this.client instanceof QPClient)) return;
+
     if (this.hasClientStarted) return;
 
     let secretKey = await DB.getItem(QuantumPurse.CLIENT_SECRET_PREFIX);
@@ -220,8 +228,10 @@ export default class QuantumPurse extends QPSigner {
     }
   }
 
-  /* Fetch the sphincs+ celldeps to the light client in quantumPurse wallet setup */
+  /* Fetch the sphincs+ celldeps to the light client in quantumPurse wallet setup. Designed for light client only */
   private async fetchSphincsPlusCellDeps() {
+    if (!(this.client instanceof QPClient)) return;
+
     if (!this.hasClientStarted) {
       logger("error", "Light client has not initialized");
       return;
@@ -277,8 +287,11 @@ export default class QuantumPurse extends QPSigner {
    * @param startingBlocks The starting block array corresponding to the spxLockArgsArray to be set.
    * @param setMode The mode to set the scripts (All, Partial, Delete).
    * @throws Error light client is not initialized.
+   * Designed for light client only.
    */
   public async setSellectiveSyncFilter(spxLockArgsArray: Hex[], startingBlocks: bigint[], setMode: LightClientSetScriptsCommand) {
+    if (!(this.client instanceof QPClient)) return;
+    
     if (!this.hasClientStarted) throw new Error("Light client has not initialized");
 
     if (spxLockArgsArray.length !== startingBlocks.length) {
@@ -327,7 +340,7 @@ export default class QuantumPurse extends QPSigner {
    * @returns The CKB address as a string.
    * @throws Error if no account pointer is set by default (see `getLockScript` for details).
    */
-  public getAddress(spxLockArgs?: BytesLike): string {
+  public async getAddress(spxLockArgs?: BytesLike): Promise <string> {
     const lock = this.getLockScript(spxLockArgs);
     return Address.fromScript(lock, this.client).toString();
   }
@@ -339,7 +352,7 @@ export default class QuantumPurse extends QPSigner {
    * @throws Error light client is not initialized.
    */
   public async getBalance(spxLockArgs?: Hex): Promise<bigint> {
-    if (!this.hasClientStarted) {
+    if ((this.client instanceof QPClient) && !this.hasClientStarted) {
       logger("error", "Light client has not initialized");
       return Promise.resolve(BigInt(0));
     }
@@ -364,7 +377,7 @@ export default class QuantumPurse extends QPSigner {
    * @throws Error light client is not initialized.
    */
   public async getNervosDaoBalance(spxLockArgs?: Hex): Promise<bigint> {
-    if (!this.hasClientStarted) {
+    if ((this.client instanceof QPClient) && !this.hasClientStarted) {
       logger("error", "Light client has not initialized");
       return Promise.resolve(BigInt(0));
     }
@@ -519,7 +532,7 @@ export default class QuantumPurse extends QPSigner {
       if (!this.keyVault) throw new Error("KeyVault not initialized!");
       const spxLockArgsList = await this.keyVault.recover_accounts(password, count) as Hex[];
 
-      if (!this.hasClientStarted) {
+      if ((this.client instanceof QPClient) && !this.hasClientStarted) {
         logger("error", "Light client has not initialized");
         return;
       }
@@ -533,7 +546,13 @@ export default class QuantumPurse extends QPSigner {
         };
 
         let startBlock = BigInt(0);
-        const response = await this.client.getTransactions(searchKey, "asc", 1);
+        let response;
+        if (!(this.client instanceof QPClient)) {
+          response = await this.client.findTransactionsPaged(searchKey, "asc", 1);
+        } else {
+          response = await this.client.getTransactions(searchKey, "asc", 1);
+        }
+        // const response = await this.client.getTransactions(searchKey, "asc", 1);
         if (response.transactions && response.transactions.length > 0) {
           // found the first transation, set to the block prior
           startBlock = response.transactions[0].blockNumber - BigInt(1);
@@ -564,7 +583,8 @@ export default class QuantumPurse extends QPSigner {
     feeRate: bigint = BigInt(1500),
     signOffline: boolean = false
   ): Promise<Hex|Transaction> {
-    if (!this.hasClientStarted) throw new Error("Light client has not initialized");
+    if ((this.client instanceof QPClient) && !this.hasClientStarted)
+      throw new Error("Light client has not initialized");
 
     const tx = ccc.Transaction.from({
         outputs: [
@@ -611,7 +631,8 @@ export default class QuantumPurse extends QPSigner {
     feeRate: bigint = BigInt(1500),
     signOffline: boolean = false
   ): Promise<Hex | Transaction> {
-    if (!this.hasClientStarted) throw new Error("Light client has not initialized");
+    if ((this.client instanceof QPClient) && !this.hasClientStarted)
+      throw new Error("Light client has not initialized");
 
     const tx = ccc.Transaction.from({
         outputs: [
@@ -656,7 +677,8 @@ export default class QuantumPurse extends QPSigner {
     feeRate: bigint = BigInt(1500),
     signOffline: boolean = false
   ): Promise<Hex | Transaction> {
-    if (!this.hasClientStarted) throw new Error("Light client has not initialized");
+    if ((this.client instanceof QPClient) && !this.hasClientStarted)
+      throw new Error("Light client has not initialized");
 
     const tx = ccc.Transaction.from({
       outputs: [
@@ -713,7 +735,8 @@ export default class QuantumPurse extends QPSigner {
     feeRate: bigint = BigInt(1500),
     signOffline: boolean = false
   ): Promise<Hex | Transaction> {
-    if (!this.hasClientStarted) throw new Error("Light client has not initialized");
+    if ((this.client instanceof QPClient) && !this.hasClientStarted)
+      throw new Error("Light client has not initialized");
 
     const tx = ccc.Transaction.from({
       outputs: [
@@ -771,7 +794,8 @@ export default class QuantumPurse extends QPSigner {
     feeRate: bigint = BigInt(1500),
     signOffline: boolean = false
   ): Promise<Hex | Transaction> {
-    if (!this.hasClientStarted) throw new Error("Light client has not initialized");
+    if ((this.client instanceof QPClient) && !this.hasClientStarted)
+      throw new Error("Light client has not initialized");
 
     const desLock = (await Address.fromString(to, this.client)).script;
 
@@ -831,11 +855,12 @@ export default class QuantumPurse extends QPSigner {
     feeRate: bigint = BigInt(1500),
     signOffline: boolean = false
   ): Promise<Hex | Transaction> {
-    if (!this.hasClientStarted) throw new Error("Light client has not initialized");
+    if ((this.client instanceof QPClient) && !this.hasClientStarted)
+      throw new Error("Light client has not initialized");
 
     const [depositBlockHeader, withdrawBlockHeader] = await Promise.all([
-      this.client.getHeader(depositBlockHash),
-      this.client.getHeader(withdrawingBlockHash),
+      this.client.getHeaderByHash(depositBlockHash),
+      this.client.getHeaderByHash(withdrawingBlockHash),
     ]);
 
     const tx = ccc.Transaction.from({
