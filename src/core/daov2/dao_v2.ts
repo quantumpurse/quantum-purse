@@ -84,9 +84,9 @@ export async function createBindingSession(
 
 /**
  * Complete the address binding process:
- * 1. Derive per-address challenges from the activity hash.
+ * 1. Derive per-address challenges from the event hash.
  * 2. Sign each challenge with the corresponding address's private key.
- * 3. Fill bind_signatures in the activity and submit to the BE.
+ * 3. Fill bind_signatures in the event and submit to the BE.
  */
 export async function completeBinding(
 	apiKey: string,
