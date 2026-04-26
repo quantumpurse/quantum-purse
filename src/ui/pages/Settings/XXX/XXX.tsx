@@ -16,7 +16,7 @@ import {
   createBindingSession,
   completeBinding,
   fetchServerPublicKey,
-  AddressBindingActivity,
+  AddressBindingEvent,
   type AccountInfo,
 } from "../../../../core/daov2/dao_v2";
 import { downloadReceipt } from "../../../../core/daov2/receipt";
@@ -30,7 +30,7 @@ const XXX: React.FC = () => {
   const [isBinding, setIsBinding] = useState<boolean>(false);
   const [accountInfoModalVisible, setAccountInfoModalVisible] = useState<boolean>(false);
   const [accountInfo, setAccountInfo] = useState<AccountInfo | null>(null);
-  const [bindingPayload, setBindingPayload] = useState<AddressBindingActivity | null>(null);
+  const [bindingPayload, setBindingPayload] = useState<AddressBindingEvent | null>(null);
   const [addressesToBind, setAddressesToBind] = useState<string[]>([]);
   const [lockScriptArgs, setLockScriptArgs] = useState<string[]>([]);
   const authenticationRef = useRef<AuthenticationRef>(null);
@@ -95,7 +95,7 @@ const XXX: React.FC = () => {
       // Fetch the server's public key and verify the payload before showing
       // the confirmation modal. This ensures the wallet only signs verified data.
       const serverPublicKey = await fetchServerPublicKey();
-      await AddressBindingActivity.verifyBinding(response.payload as any, serverPublicKey, allAddresses);
+      await AddressBindingEvent.verifyBinding(response.payload as any, serverPublicKey, allAddresses);
 
       // Filter lockScriptArgs to match only the unbound addresses.
       const unboundLockArgs: string[] = [];

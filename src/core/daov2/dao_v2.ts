@@ -1,9 +1,9 @@
 import QuantumPurse from "../quantum_purse";
-import { AddressBindingActivity } from "./address_binding";
+import { AddressBindingEvent } from "./address_binding";
 import { HashBuilder } from "./hash_builder";
 
 // Re-export so existing callers can import from this module.
-export { AddressBindingActivity };
+export { AddressBindingEvent };
 
 const DAO_SERVER_URL = "http://localhost:8080";
 
@@ -19,7 +19,7 @@ export interface AccountInfo {
 
 export interface BindingSessionResponse {
 	success: boolean;
-	payload: AddressBindingActivity;
+	payload: AddressBindingEvent;
 	account_info: AccountInfo;
 	message: string;
 }
@@ -46,7 +46,7 @@ export async function fetchServerPublicKey(): Promise<string> {
 // Challenge derivation — matches BE's services/address_binding.rs logic.
 // ---------------------------------------------------------------------------
 
-/** Derive the per-address challenge: sha256(activity_hash || address). */
+/** Derive the per-address challenge: sha256(event_hash || address). */
 function deriveChallenge(activityHash: string, address: string): Promise<string> {
 	return new HashBuilder().str(activityHash).str(address).digest();
 }
@@ -90,14 +90,14 @@ export async function createBindingSession(
  */
 export async function completeBinding(
 	apiKey: string,
-	payload: AddressBindingActivity,
+	payload: AddressBindingEvent,
 	lockArgsList: string[],
 	quantumPurse: QuantumPurse,
 ) {
 	// Step 1: Derive challenges for each address.
 	const challenges = await Promise.all(
 		payload.ckb_addresses.map((addr) =>
-			deriveChallenge(payload.activity_hash, addr),
+			deriveChallenge(payload.event_hash, addr),
 		),
 	);
 
