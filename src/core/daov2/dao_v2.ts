@@ -47,8 +47,8 @@ export async function fetchServerPublicKey(): Promise<string> {
 // ---------------------------------------------------------------------------
 
 /** Derive the per-address challenge: sha256(event_hash || address). */
-function deriveChallenge(activityHash: string, address: string): Promise<string> {
-	return new HashBuilder().str(activityHash).str(address).digest();
+function deriveChallenge(eventHash: string, address: string): Promise<string> {
+	return new HashBuilder().str(eventHash).str(address).digest();
 }
 
 // ---------------------------------------------------------------------------

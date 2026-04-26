@@ -152,7 +152,7 @@ const XXX: React.FC = () => {
       // Show loading state (duration 0 = infinite, dismissed manually).
       dismissLoading = message.loading('Signing challenges and completing address binding...', 0);
 
-      // Derive challenges, sign them, and submit the completed activity.
+      // Derive challenges, sign them, and submit the completed event.
       const { response, event } = await completeBinding(
         apiKey,
         bindingPayload,
