@@ -10,11 +10,11 @@ import { Ed25519Proof } from "./ed25519_proof";
 /// rebuilds the activity hash, verifies it matches, and verifies the server
 /// proof. If it returns, the payload is verified. If not, it throws.
 
-export class AddressBindingActivity {
+export class AddressBindingEvent {
 	static readonly ACTIVITY_TYPE = "address_binding";
 
-	readonly activity_type: string;
-	readonly activity_hash: string;
+	readonly event_type: string;
+	readonly event_hash: string;
 	readonly previous_hash: string | null;
 	readonly user_id: string;
 	readonly user_proof: string | null;
@@ -26,9 +26,9 @@ export class AddressBindingActivity {
 	readonly created_at: string;
 	readonly expired_at: string;
 
-	private constructor(payload: AddressBindingActivity) {
-		this.activity_type = payload.activity_type;
-		this.activity_hash = payload.activity_hash;
+	private constructor(payload: AddressBindingEvent) {
+		this.event_type = payload.event_type;
+		this.event_hash = payload.event_hash;
 		this.previous_hash = payload.previous_hash;
 		this.user_id = payload.user_id;
 		this.user_proof = payload.user_proof;
@@ -49,13 +49,13 @@ export class AddressBindingActivity {
 		payload: Record<string, unknown>,
 		serverPublicKeyHex: string,
 	): Promise<void> {
-		const activity = new AddressBindingActivity(
-			payload as unknown as AddressBindingActivity,
+		const activity = new AddressBindingEvent(
+			payload as unknown as AddressBindingEvent,
 		);
 
 		// Rebuild the activity hash and verify it matches the declared hash.
 		const rebuilt = await activity.computeHash();
-		if (rebuilt !== activity.activity_hash) {
+		if (rebuilt !== activity.event_hash) {
 			throw new Error(
 				"Activity hash mismatch: the server's payload does not match its " +
 					"declared hash. The data may have been tampered with.",
@@ -67,7 +67,7 @@ export class AddressBindingActivity {
 			throw new Error("Missing server proof.");
 		}
 		const proof = Ed25519Proof.fromHex(activity.server_proof);
-		await proof.verifyWithKey(activity.activity_hash, serverPublicKeyHex);
+		await proof.verifyWithKey(activity.event_hash, serverPublicKeyHex);
 	}
 
 	/**
@@ -81,9 +81,9 @@ export class AddressBindingActivity {
 		serverPublicKeyHex: string,
 		sentAddresses: string[],
 	): Promise<void> {
-		await AddressBindingActivity.verify(payload, serverPublicKeyHex);
+		await AddressBindingEvent.verify(payload, serverPublicKeyHex);
 
-		const activity = payload as unknown as AddressBindingActivity;
+		const activity = payload as unknown as AddressBindingEvent;
 
 		// Verify addresses are a subset of what the wallet sent.
 		const sentSet = new Set(sentAddresses);
@@ -116,12 +116,12 @@ export class AddressBindingActivity {
 	 * Deterministic SHA-256 hash over the activity fields.
 	 * Must match BE's AddressBindingActivity::compute_hash() byte-for-byte.
 	 *
-	 * Field order: activity_type, previous_hash, user_id, ckb_block_height (i64 LE),
+	 * Field order: event_type, previous_hash, user_id, ckb_block_height (i64 LE),
 	 * each address, is_binding (as 0/1 byte), created_at, expired_at.
 	 */
 	private async computeHash(): Promise<string> {
 		const builder = new HashBuilder()
-			.str(this.activity_type)
+			.str(this.event_type)
 			.optStr(this.previous_hash)
 			.str(this.user_id)
 			.i64(this.ckb_block_height);
