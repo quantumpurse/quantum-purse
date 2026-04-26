@@ -1,17 +1,17 @@
 import { HashBuilder } from "./hash_builder";
 import { Ed25519Proof } from "./ed25519_proof";
 
-/// Address binding/unbinding activity model.
+/// Address binding/unbinding event model.
 ///
 /// Mirrors BE's `models/address_binding.rs`. Common governance fields plus
 /// address binding-specific fields (ckb_addresses, bind_signatures, is_binding).
 ///
 /// `verify()` is the single entry point: it parses the BE response,
-/// rebuilds the activity hash, verifies it matches, and verifies the server
+/// rebuilds the event hash, verifies it matches, and verifies the server
 /// proof. If it returns, the payload is verified. If not, it throws.
 
 export class AddressBindingEvent {
-	static readonly ACTIVITY_TYPE = "address_binding";
+	static readonly EVENT_TYPE = "address_binding";
 
 	readonly event_type: string;
 	readonly event_hash: string;
@@ -49,32 +49,32 @@ export class AddressBindingEvent {
 		payload: Record<string, unknown>,
 		serverPublicKeyHex: string,
 	): Promise<void> {
-		const activity = new AddressBindingEvent(
+		const event = new AddressBindingEvent(
 			payload as unknown as AddressBindingEvent,
 		);
 
-		// Rebuild the activity hash and verify it matches the declared hash.
-		const rebuilt = await activity.computeHash();
-		if (rebuilt !== activity.event_hash) {
+		// Rebuild the event hash and verify it matches the declared hash.
+		const rebuilt = await event.computeHash();
+		if (rebuilt !== event.event_hash) {
 			throw new Error(
-				"Activity hash mismatch: the server's payload does not match its " +
+				"Event hash mismatch: the server's payload does not match its " +
 					"declared hash. The data may have been tampered with.",
 			);
 		}
 
-		// Verify the server's ed25519 proof over the activity hash.
-		if (!activity.server_proof) {
+		// Verify the server's ed25519 proof over the event hash.
+		if (!event.server_proof) {
 			throw new Error("Missing server proof.");
 		}
-		const proof = Ed25519Proof.fromHex(activity.server_proof);
-		await proof.verifyWithKey(activity.event_hash, serverPublicKeyHex);
+		const proof = Ed25519Proof.fromHex(event.server_proof);
+		await proof.verifyWithKey(event.event_hash, serverPublicKeyHex);
 	}
 
 	/**
 	 * Verify a binding challenge response from the server. Throws on any failure.
 	 *
 	 * Checks: hash integrity, server proof, addresses match what was sent,
-	 * is_binding is true, and activity hasn't expired.
+	 * is_binding is true, and event hasn't expired.
 	 */
 	static async verifyBinding(
 		payload: Record<string, unknown>,
@@ -83,11 +83,11 @@ export class AddressBindingEvent {
 	): Promise<void> {
 		await AddressBindingEvent.verify(payload, serverPublicKeyHex);
 
-		const activity = payload as unknown as AddressBindingEvent;
+		const event = payload as unknown as AddressBindingEvent;
 
 		// Verify addresses are a subset of what the wallet sent.
 		const sentSet = new Set(sentAddresses);
-		for (const addr of activity.ckb_addresses) {
+		for (const addr of event.ckb_addresses) {
 			if (!sentSet.has(addr)) {
 				throw new Error(
 					`Server returned an address the wallet did not send: ${addr}`,
@@ -96,25 +96,25 @@ export class AddressBindingEvent {
 		}
 
 		// Only binding activities should come through this path.
-		if (!activity.is_binding) {
+		if (!event.is_binding) {
 			throw new Error(
-				"Server returned an unbinding activity — refusing to sign.",
+				"Server returned an unbinding event — refusing to sign.",
 			);
 		}
 
-		// Verify activity hasn't expired.
+		// Verify event hasn't expired.
 		// Chrono's serde serializes NaiveDateTime without timezone — append "Z" to parse as UTC.
-		const expiredAt = new Date(activity.expired_at + "Z");
+		const expiredAt = new Date(event.expired_at + "Z");
 		if (expiredAt <= new Date()) {
 			throw new Error(
-				"The binding activity has already expired. Please retry.",
+				"The binding event has already expired. Please retry.",
 			);
 		}
 	}
 
 	/**
-	 * Deterministic SHA-256 hash over the activity fields.
-	 * Must match BE's AddressBindingActivity::compute_hash() byte-for-byte.
+	 * Deterministic SHA-256 hash over the event fields.
+	 * Must match BE's AddressBindingEvent::compute_hash() byte-for-byte.
 	 *
 	 * Field order: event_type, previous_hash, user_id, ckb_block_height (i64 LE),
 	 * each address, is_binding (as 0/1 byte), created_at, expired_at.
