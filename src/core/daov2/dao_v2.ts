@@ -110,8 +110,8 @@ export async function completeBinding(
 	const signatures =
 		await quantumPurse.signXXXMessagesBatch(messagesToSign);
 
-	// Step 3: Fill bind_signatures and send the complete activity.
-	const completedActivity = {
+	// Step 3: Fill bind_signatures and send the complete event.
+	const completedEvent = {
 		...payload,
 		bind_signatures: signatures,
 	};
@@ -124,7 +124,7 @@ export async function completeBinding(
 				"Content-Type": "application/json",
 				Authorization: `Bearer ${apiKey}`,
 			},
-			body: JSON.stringify(completedActivity),
+			body: JSON.stringify(completedEvent),
 		},
 	);
 
@@ -134,5 +134,5 @@ export async function completeBinding(
 	}
 
 	const response = await verifyResponse.json();
-	return { response, activity: completedActivity };
+	return { response, event: completedEvent };
 }

@@ -161,7 +161,7 @@ const XXX: React.FC = () => {
       );
 
       // Download binding receipt for fraud-proof archival.
-      downloadReceipt(activity, response.commit_hash, `binding-${Date.now()}.json`);
+      downloadReceipt(event, response.commit_hash, `binding-${Date.now()}.json`);
 
       // Close modal.
       setAccountInfoModalVisible(false);
