@@ -11,9 +11,9 @@ import { Ed25519Proof } from "./ed25519_proof";
 /// proof. If it returns, the payload is verified. If not, it throws.
 
 export class AddressBindingEvent {
-	static readonly EVENT_TYPE = "address_binding";
+	// static readonly EVENT_DETAIL_TABLE = "address_bindings";
 
-	readonly event_type: string;
+	readonly event_detail_table: string;
 	readonly event_hash: string;
 	readonly previous_hash: string | null;
 	readonly user_id: string;
@@ -27,7 +27,7 @@ export class AddressBindingEvent {
 	readonly expired_at: string;
 
 	private constructor(payload: AddressBindingEvent) {
-		this.event_type = payload.event_type;
+		this.event_detail_table = payload.event_detail_table;
 		this.event_hash = payload.event_hash;
 		this.previous_hash = payload.previous_hash;
 		this.user_id = payload.user_id;
@@ -116,12 +116,12 @@ export class AddressBindingEvent {
 	 * Deterministic SHA-256 hash over the event fields.
 	 * Must match BE's AddressBindingEvent::compute_hash() byte-for-byte.
 	 *
-	 * Field order: event_type, previous_hash, user_id, ckb_block_height (i64 LE),
+	 * Field order: event_detail_table, previous_hash, user_id, ckb_block_height (i64 LE),
 	 * each address, is_binding (as 0/1 byte), created_at, expired_at.
 	 */
 	private async computeHash(): Promise<string> {
 		const builder = new HashBuilder()
-			.str(this.event_type)
+			.str(this.event_detail_table)
 			.optStr(this.previous_hash)
 			.str(this.user_id)
 			.i64(this.ckb_block_height);
