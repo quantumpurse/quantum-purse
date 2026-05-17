@@ -101,15 +101,6 @@ export class AddressBindingEvent {
 				"Server returned an unbinding event — refusing to sign.",
 			);
 		}
-
-		// Verify event hasn't expired.
-		// Chrono's serde serializes NaiveDateTime without timezone — append "Z" to parse as UTC.
-		const expiredAt = new Date(event.expired_at + "Z");
-		if (expiredAt <= new Date()) {
-			throw new Error(
-				"The binding event has already expired. Please retry.",
-			);
-		}
 	}
 
 	/**
