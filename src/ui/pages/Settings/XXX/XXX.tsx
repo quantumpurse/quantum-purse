@@ -55,7 +55,8 @@ const XXX: React.FC = () => {
     };
   }, []);
 
-  const handleBind = async () => {
+  // For when users use the binding api key and hit "Start"
+  const handleStartBinding = async () => {
     if (!apiKey.trim()) {
       message.warning("Please enter an API key");
       return;
@@ -75,7 +76,7 @@ const XXX: React.FC = () => {
         quantum.getAddress(lockArg as Hex)
       );
 
-      // Request binding session from the server.
+      // Step1: Open a binding session and get challenges from the server.
       const response = await createBindingSession(apiKey, allAddresses);
 
       if (!response.payload || !response.account_info) {
@@ -92,7 +93,7 @@ const XXX: React.FC = () => {
         return;
       }
 
-      // Fetch the server's public key and verify the payload before showing
+      // Step2: Fetch the server's public key and verify the payload before showing
       // the confirmation modal. This ensures the wallet only signs verified data.
       const serverPublicKey = await fetchServerPublicKey();
       await AddressBindingEvent.verifyBinding(response.payload as any, serverPublicKey, allAddresses);
@@ -135,7 +136,7 @@ const XXX: React.FC = () => {
     }
   };
 
-  const handleConfirmBinding = async () => {
+  const handleBinding = async () => {
     if (!quantum) {
       message.error("Wallet not initialized");
       return;
@@ -243,14 +244,17 @@ const XXX: React.FC = () => {
             />
             <Button
               type="primary"
-              onClick={handleBind}
+              onClick={handleStartBinding}
               loading={isBinding}
               disabled={isBinding}
               size="large"
             >
-              Bind
+              Start
             </Button>
           </Flex>
+          <Text type="secondary" style={{ fontSize: '12px', color: 'rgba(255, 255, 255, 0.45)' }}>
+            This starts a 20-second binding session. Review the account info and confirm before it expires.
+          </Text>
         </Flex>
       </Flex>
 
@@ -258,7 +262,7 @@ const XXX: React.FC = () => {
       <Modal
         title="Confirm XXX Account Binding"
         open={accountInfoModalVisible}
-        onOk={handleConfirmBinding}
+        onOk={handleBinding}
         onCancel={handleCancelBinding}
         okText="Confirm & Sign"
         cancelText="Cancel"
