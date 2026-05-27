@@ -89,7 +89,7 @@
     "@ant-design/icons": "6.1.0",
     "@ckb-ccc/core": "npm:ckb-ccc-core-light-client-js-patch@1.12.3",
     "@nervosnetwork/ckb-light-client-js": "0.5.5",
-    "@noble/ed25519": "3.0.1",
+    "@noble/curves": "^1.8.0",
     "@rematch/core": "2.2.0",
     "@rematch/loading": "2.1.2",
     "antd": "6.3.0",

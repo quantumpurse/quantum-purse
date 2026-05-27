@@ -28,7 +28,7 @@ export interface BindingSessionResponse {
 // Server public key.
 // ---------------------------------------------------------------------------
 
-/** Fetch the server's ed25519 public key (64 hex chars) for proof verification. */
+/** Fetch the server's Schnorr public key (64 hex chars) for proof verification. */
 export async function fetchServerPublicKey(): Promise<string> {
 	const response = await fetch(`${DAO_SERVER_URL}/config/server-public-key`);
 

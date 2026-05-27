@@ -1,5 +1,5 @@
 import { HashBuilder } from "./hash_builder";
-import { Ed25519Proof } from "./ed25519_proof";
+import { SchnorrProof } from "./schnorr_proof";
 
 /// Address binding/unbinding event model.
 ///
@@ -62,11 +62,11 @@ export class AddressBindingEvent {
 			);
 		}
 
-		// Verify the server's ed25519 proof over the event hash.
+		// Verify the server's Schnorr proof over the event hash.
 		if (!event.server_proof) {
 			throw new Error("Missing server proof.");
 		}
-		const proof = Ed25519Proof.fromHex(event.server_proof);
+		const proof = SchnorrProof.fromHex(event.server_proof);
 		await proof.verifyWithKey(event.event_hash, serverPublicKeyHex);
 	}
 
