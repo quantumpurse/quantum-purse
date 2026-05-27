@@ -1,18 +1,18 @@
-import * as ed from "@noble/ed25519";
+import { schnorr } from "@noble/curves/secp256k1";
 import { hexToBytes, bytesToHex } from "./hash_builder";
 
-/// Ed25519 signature (64 bytes) + public key (32 bytes) concatenated as hex.
+/// Schnorr signature (64 bytes) + x-only public key (32 bytes) concatenated as hex.
 /// Wire format: `<128-char signature hex><64-char public key hex>` = 192 hex chars.
 ///
 /// A self-contained cryptographic proof — anyone can verify it without a
 /// separate public key lookup. Used for both user proofs (passkey PRF-derived)
 /// and server proofs (server signing key).
 ///
-/// Mirrors BE's `crypto/ed25519_proof.rs`.
+/// Mirrors BE's `crypto.rs::SchnorrProof`.
 
 const PROOF_HEX_LEN = 192; // 128 (sig) + 64 (pubkey)
 
-export class Ed25519Proof {
+export class SchnorrProof {
 	readonly signature: Uint8Array; // 64 bytes
 	readonly publicKey: Uint8Array; // 32 bytes
 
@@ -21,17 +21,17 @@ export class Ed25519Proof {
 		this.publicKey = publicKey;
 	}
 
-	/** Parse a 192-character hex string into an Ed25519Proof. */
-	static fromHex(hexStr: string): Ed25519Proof {
+	/** Parse a 192-character hex string into a SchnorrProof. */
+	static fromHex(hexStr: string): SchnorrProof {
 		if (hexStr.length !== PROOF_HEX_LEN) {
 			throw new Error(
-				`Ed25519 proof must be ${PROOF_HEX_LEN} hex characters (got ${hexStr.length}).`,
+				`Schnorr proof must be ${PROOF_HEX_LEN} hex characters (got ${hexStr.length}).`,
 			);
 		}
 
 		const signature = hexToBytes(hexStr.substring(0, 128));
 		const publicKey = hexToBytes(hexStr.substring(128));
-		return new Ed25519Proof(signature, publicKey);
+		return new SchnorrProof(signature, publicKey);
 	}
 
 	/** Encode as a 192-character hex string. */
@@ -47,10 +47,10 @@ export class Ed25519Proof {
 	/** Verify that this proof's signature is valid for the given message. */
 	async verify(message: string): Promise<void> {
 		const msgBytes = new TextEncoder().encode(message);
-		const valid = await ed.verifyAsync(this.signature, msgBytes, this.publicKey);
+		const valid = schnorr.verify(this.signature, msgBytes, this.publicKey);
 		if (!valid) {
 			throw new Error(
-				"Ed25519 signature verification failed. The data may have been tampered with.",
+				"Schnorr signature verification failed. The data may have been tampered with.",
 			);
 		}
 	}
