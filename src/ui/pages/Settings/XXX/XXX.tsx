@@ -1,5 +1,6 @@
 import {
   Button,
+  Checkbox,
   Flex,
   Input,
   Typography,
@@ -33,6 +34,7 @@ const XXX: React.FC = () => {
   const [bindingPayload, setBindingPayload] = useState<AddressBindingEvent | null>(null);
   const [addressesToBind, setAddressesToBind] = useState<string[]>([]);
   const [lockScriptArgs, setLockScriptArgs] = useState<string[]>([]);
+  const [selectedAddressIndices, setSelectedAddressIndices] = useState<Set<number>>(new Set());
   const authenticationRef = useRef<AuthenticationRef>(null);
   const [passwordResolver, setPasswordResolver] = useState<{
     resolve: (password: Uint8Array) => void;
@@ -98,19 +100,24 @@ const XXX: React.FC = () => {
       const serverPublicKey = await fetchServerPublicKey();
       await AddressBindingEvent.verifyBinding(response.payload as any, serverPublicKey, allAddresses);
 
-      // Filter lockScriptArgs to match only the unbound addresses.
-      const unboundLockArgs: string[] = [];
+      // Build lockScriptArgs in the same order as payload.ckb_addresses
+      // to guarantee index alignment regardless of BE ordering.
+      const addressToLockArgs = new Map<string, string>();
       for (let i = 0; i < allAddresses.length; i++) {
-        if (unboundAddresses.includes(allAddresses[i])) {
-          unboundLockArgs.push(allLockArgs[i]);
-        }
+        addressToLockArgs.set(allAddresses[i], allLockArgs[i]);
       }
+      const unboundLockArgs = unboundAddresses.map((addr) => {
+        const lockArgs = addressToLockArgs.get(addr);
+        if (!lockArgs) throw new Error(`No lock args found for address ${addr}`);
+        return lockArgs;
+      });
 
-      // Store verified data for the confirmation step.
+      // Store verified data for the confirmation step. All addresses selected by default.
       setAccountInfo(response.account_info);
       setBindingPayload(response.payload);
       setAddressesToBind(unboundAddresses);
       setLockScriptArgs(unboundLockArgs);
+      setSelectedAddressIndices(new Set(unboundAddresses.map((_, i) => i)));
 
       // Show the account confirmation modal.
       setAccountInfoModalVisible(true);
@@ -154,11 +161,13 @@ const XXX: React.FC = () => {
       dismissLoading = message.loading('Signing challenges and completing address binding...', 0);
 
       // Derive challenges, sign them, and submit the completed event.
+      // Only selected addresses are signed; the rest get empty signatures.
       const { response, event } = await completeBinding(
         apiKey,
         bindingPayload,
         lockScriptArgs,
         quantum,
+        Array.from(selectedAddressIndices),
       );
 
       // Download binding receipt for fraud-proof archival.
@@ -179,6 +188,7 @@ const XXX: React.FC = () => {
       setBindingPayload(null);
       setAddressesToBind([]);
       setLockScriptArgs([]);
+      setSelectedAddressIndices(new Set());
       setApiKey("");
 
     } catch (error) {
@@ -213,6 +223,7 @@ const XXX: React.FC = () => {
     setBindingPayload(null);
     setAddressesToBind([]);
     setLockScriptArgs([]);
+    setSelectedAddressIndices(new Set());
     message.info("Address binding cancelled");
   };
 
@@ -264,7 +275,8 @@ const XXX: React.FC = () => {
         open={accountInfoModalVisible}
         onOk={handleBinding}
         onCancel={handleCancelBinding}
-        okText="Confirm & Sign"
+        okText={`Confirm & Sign (${selectedAddressIndices.size})`}
+        okButtonProps={{ disabled: selectedAddressIndices.size === 0 }}
         cancelText="Cancel"
         width={600}
         centered
@@ -302,12 +314,43 @@ const XXX: React.FC = () => {
             <Divider style={{ margin: '12px 0' }} />
 
             <div>
-              <Text strong>Addresses to Bind ({addressesToBind.length}):</Text>
-              <Flex vertical gap={8} style={{ marginTop: '8px', maxHeight: '150px', overflowY: 'auto' }}>
+              <Flex justify="space-between" align="center">
+                <Text strong>Select Addresses to Bind ({selectedAddressIndices.size} of {addressesToBind.length}):</Text>
+                <Button
+                  type="link"
+                  size="small"
+                  onClick={() => {
+                    if (selectedAddressIndices.size === addressesToBind.length) {
+                      setSelectedAddressIndices(new Set());
+                    } else {
+                      setSelectedAddressIndices(new Set(addressesToBind.map((_, i) => i)));
+                    }
+                  }}
+                >
+                  {selectedAddressIndices.size === addressesToBind.length ? 'Deselect All' : 'Select All'}
+                </Button>
+              </Flex>
+              <Flex vertical gap={8} style={{ marginTop: '8px', maxHeight: '200px', overflowY: 'auto' }}>
                 {addressesToBind.map((address, index) => (
-                  <Tag key={index} style={{ fontFamily: 'monospace', fontSize: '11px' }}>
-                    {address.substring(0, 10)}...{address.substring(address.length - 8)}
-                  </Tag>
+                  <Checkbox
+                    key={index}
+                    checked={selectedAddressIndices.has(index)}
+                    onChange={(e) => {
+                      setSelectedAddressIndices(prev => {
+                        const next = new Set(prev);
+                        if (e.target.checked) {
+                          next.add(index);
+                        } else {
+                          next.delete(index);
+                        }
+                        return next;
+                      });
+                    }}
+                  >
+                    <Tag style={{ fontFamily: 'monospace', fontSize: '11px', margin: 0 }}>
+                      {address.substring(0, 10)}...{address.substring(address.length - 8)}
+                    </Tag>
+                  </Checkbox>
                 ))}
               </Flex>
             </div>
