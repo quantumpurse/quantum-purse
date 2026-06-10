@@ -87,33 +87,46 @@ export async function createBindingSession(
  * 1. Derive per-address challenges from the event hash.
  * 2. Sign each challenge with the corresponding address's private key.
  * 3. Fill bind_signatures in the event and submit to the BE.
+ *
+ * Supports selective binding: `selectedIndices` specifies which addresses
+ * (by index into payload.ckb_addresses) the user chose to bind. Unselected
+ * addresses get an empty string in bind_signatures. If omitted, all
+ * addresses are signed (backward-compatible).
  */
 export async function completeBinding(
 	apiKey: string,
 	payload: AddressBindingEvent,
 	lockArgsList: string[],
 	quantumPurse: QuantumPurse,
+	selectedIndices?: number[],
 ) {
-	// Step 1: Derive challenges for each address.
-	const challenges = await Promise.all(
-		payload.ckb_addresses.map((addr) =>
-			deriveChallenge(payload.event_hash, addr),
-		),
-	);
+	// Determine which addresses to sign.
+	const selected = selectedIndices
+		? new Set(selectedIndices)
+		: new Set(payload.ckb_addresses.map((_, i) => i));
 
-	// Step 2: Sign all challenges in batch with a single password request.
-	const messagesToSign = challenges.map((challenge, i) => ({
-		message: challenge,
-		lockArgs: lockArgsList[i],
-	}));
+	// Step 1: Derive challenges only for selected addresses.
+	const messagesToSign: { message: string; lockArgs: string }[] = [];
+	const signIndexMap: number[] = [];
 
-	const signatures =
-		await quantumPurse.signXXXMessagesBatch(messagesToSign);
+	for (const i of selected) {
+		const challenge = await deriveChallenge(payload.event_hash, payload.ckb_addresses[i]);
+		messagesToSign.push({ message: challenge, lockArgs: lockArgsList[i] });
+		signIndexMap.push(i);
+	}
 
-	// Step 3: Fill bind_signatures and send the complete event.
+	// Step 2: Sign selected challenges in batch with a single password request.
+	const signatures = await quantumPurse.signXXXMessagesBatch(messagesToSign);
+
+	// Step 3: Build bind_signatures array with empty strings for unselected.
+	const bindSignatures: string[] = payload.ckb_addresses.map(() => "");
+	for (let j = 0; j < signIndexMap.length; j++) {
+		bindSignatures[signIndexMap[j]] = signatures[j];
+	}
+
 	const completedEvent = {
 		...payload,
-		bind_signatures: signatures,
+		bind_signatures: bindSignatures,
 	};
 
 	const verifyResponse = await fetch(
