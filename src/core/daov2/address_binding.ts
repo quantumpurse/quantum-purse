@@ -15,7 +15,6 @@ export class AddressBindingEvent {
 
 	readonly event_type: string;
 	readonly event_hash: string;
-	readonly previous_hash: string | null;
 	readonly user_id: string;
 	readonly user_proof: string | null;
 	readonly server_proof: string | null;
@@ -29,7 +28,6 @@ export class AddressBindingEvent {
 	private constructor(payload: AddressBindingEvent) {
 		this.event_type = payload.event_type;
 		this.event_hash = payload.event_hash;
-		this.previous_hash = payload.previous_hash;
 		this.user_id = payload.user_id;
 		this.user_proof = payload.user_proof;
 		this.server_proof = payload.server_proof;
@@ -107,13 +105,12 @@ export class AddressBindingEvent {
 	 * Deterministic SHA-256 hash over the event fields.
 	 * Must match BE's AddressBindingEvent::compute_hash() byte-for-byte.
 	 *
-	 * Field order: event_type, previous_hash, user_id, ckb_block_height (i64 LE),
+	 * Field order: event_type, user_id, ckb_block_height (i64 LE),
 	 * each address, is_binding (as 0/1 byte), created_at, expired_at.
 	 */
 	private async computeHash(): Promise<string> {
 		const builder = new HashBuilder()
 			.str(this.event_type)
-			.optStr(this.previous_hash)
 			.str(this.user_id)
 			.i64(this.ckb_block_height);
 
