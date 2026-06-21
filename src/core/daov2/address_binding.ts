@@ -16,20 +16,18 @@ export class AddressBindingEvent {
 	readonly event_type: string;
 	readonly event_hash: string;
 	readonly user_id: string;
-	readonly user_proof: string | null;
 	readonly server_proof: string | null;
 	readonly ckb_block_height: number | null;
 	readonly ckb_addresses: string[];
 	readonly bind_signatures: string[];
 	readonly is_binding: boolean;
-	readonly created_at: string;
+	readonly created_at: number;
 	readonly expired_at: string;
 
 	private constructor(payload: AddressBindingEvent) {
 		this.event_type = payload.event_type;
 		this.event_hash = payload.event_hash;
 		this.user_id = payload.user_id;
-		this.user_proof = payload.user_proof;
 		this.server_proof = payload.server_proof;
 		this.ckb_block_height = payload.ckb_block_height;
 		this.ckb_addresses = payload.ckb_addresses;
@@ -106,7 +104,7 @@ export class AddressBindingEvent {
 	 * Must match BE's AddressBindingEvent::compute_hash() byte-for-byte.
 	 *
 	 * Field order: event_type, user_id, ckb_block_height (i64 LE),
-	 * each address, is_binding (as 0/1 byte), created_at, expired_at.
+	 * each address, is_binding (as 0/1 byte), created_at (i64 LE), expired_at.
 	 */
 	private async computeHash(): Promise<string> {
 		const builder = new HashBuilder()
@@ -121,7 +119,7 @@ export class AddressBindingEvent {
 		// is_binding as a single byte (matching BE's `&[self.is_binding as u8]`).
 		builder.byte(this.is_binding ? 1 : 0);
 
-		builder.datetime(this.created_at);
+		builder.i64(this.created_at);
 		builder.datetime(this.expired_at);
 
 		return builder.digest();

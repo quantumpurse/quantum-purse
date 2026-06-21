@@ -1,7 +1,7 @@
 // Download a governance event receipt as a JSON file.
 // The receipt includes the git commit hash for verification against the archive.
 export function downloadReceipt(
-	activity: Record<string, unknown>,
+	activity: object,
 	commitHash: string,
 	filename: string,
 ) {
