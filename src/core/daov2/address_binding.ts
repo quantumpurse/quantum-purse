@@ -14,6 +14,7 @@ export class AddressBindingEvent {
 	// static readonly EVENT_DETAIL_TABLE = "address_bindings";
 
 	readonly event_type: string;
+	readonly sequence_number: number;
 	readonly event_hash: string;
 	readonly user_id: string;
 	readonly user_proof: string | null;
@@ -27,6 +28,7 @@ export class AddressBindingEvent {
 
 	private constructor(payload: AddressBindingEvent) {
 		this.event_type = payload.event_type;
+		this.sequence_number = payload.sequence_number;
 		this.event_hash = payload.event_hash;
 		this.user_id = payload.user_id;
 		this.user_proof = payload.user_proof;
@@ -111,6 +113,7 @@ export class AddressBindingEvent {
 	private async computeHash(): Promise<string> {
 		const builder = new HashBuilder()
 			.str(this.event_type)
+			.i64(this.sequence_number)
 			.str(this.user_id)
 			.i64(this.ckb_block_height);
 
