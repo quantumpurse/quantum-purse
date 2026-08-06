@@ -112,7 +112,8 @@ export class AddressBindingEvent {
 		const builder = new HashBuilder()
 			.str(this.event_type)
 			.str(this.user_id)
-			.i64(this.ckb_block_height);
+			.i64(this.ckb_block_height)
+			.count(this.ckb_addresses.length);
 
 		for (const addr of this.ckb_addresses) {
 			builder.str(addr);
