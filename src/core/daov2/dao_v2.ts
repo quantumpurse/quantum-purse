@@ -1,6 +1,8 @@
 import QuantumPurse from "../quantum_purse";
 import { AddressBindingEvent } from "./address_binding";
-import { HashBuilder } from "./hash_builder";
+import { HashBuilder, hexToBytes } from "./hash_builder";
+import { SchnorrProof } from "./schnorr_proof";
+import type { AppendAck } from "./receipt";
 
 // Re-export so existing callers can import from this module.
 export { AddressBindingEvent };
@@ -148,4 +150,32 @@ export async function completeBinding(
 
 	const response = await verifyResponse.json();
 	return { response, event: completedEvent };
+}
+
+// ---------------------------------------------------------------------------
+// Append-ack verification — called by the UI after a successful bind, before
+// the receipt is downloaded.
+// ---------------------------------------------------------------------------
+
+/**
+ * Verify the server's ack of an append (Consensus rule 1): the attestation
+ * must be the server's signature over the checkpoint digest
+ * `SHA-256(leaf_index as u64 LE ‖ leaf_hash ‖ mmr_root)` (Consensus rule 8).
+ *
+ * `eventHash` MUST be the locally held hash of the payload the user signed —
+ * never a value echoed by the server — because using it as the leaf hash is
+ * what binds the ack to this event. Throws on any failure.
+ */
+export async function verifyAppendAck(
+	eventHash: string,
+	ack: AppendAck,
+): Promise<void> {
+	const digest = await new HashBuilder()
+		.i64(ack.leaf_index)
+		.bytes(hexToBytes(eventHash))
+		.bytes(hexToBytes(ack.mmr_root))
+		.digest();
+
+	const serverKey = await fetchServerPublicKey();
+	await SchnorrProof.fromHex(ack.attestation).verifyWithKey(digest, serverKey);
 }

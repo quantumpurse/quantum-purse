@@ -66,6 +66,12 @@ export class HashBuilder {
 		return this;
 	}
 
+	/** Append raw bytes as-is (e.g. a 32-byte hash decoded from hex). */
+	bytes(value: Uint8Array): this {
+		this.parts.push(value);
+		return this;
+	}
+
 	/** Append an f64 as 8 little-endian bytes. */
 	f64(value: number): this {
 		const buf = new ArrayBuffer(8);
