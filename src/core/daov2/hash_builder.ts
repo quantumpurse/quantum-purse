@@ -40,15 +40,38 @@ export class HashBuilder {
 	private parts: Uint8Array[] = [];
 	private encoder = new TextEncoder();
 
-	/** Append a UTF-8 string. */
+	/** Append a u32 little-endian length prefix. */
+	private len(value: number): void {
+		const buf = new ArrayBuffer(4);
+		new DataView(buf).setUint32(0, value, true);
+		this.parts.push(new Uint8Array(buf));
+	}
+
+	/**
+	 * Append a variable-length UTF-8 string: `u32 LE byte length ‖ bytes`
+	 * (Consensus rule 5). The prefix is what makes the field concatenation
+	 * injective — without it, title "AB" ‖ description "C" and title "A" ‖
+	 * description "BC" produce the same hash.
+	 */
 	str(value: string): this {
-		this.parts.push(this.encoder.encode(value));
+		const bytes = this.encoder.encode(value);
+		this.len(bytes.length);
+		this.parts.push(bytes);
 		return this;
 	}
 
-	/** Append an optional string (empty string if null/undefined). */
+	/** Append an optional string; null/undefined encodes exactly like "". */
 	optStr(value: string | null | undefined): this {
-		this.parts.push(this.encoder.encode(value ?? ""));
+		return this.str(value ?? "");
+	}
+
+	/**
+	 * Append the element count of a list as `u32 LE`, before its elements.
+	 * A list is itself a variable-length field: without the count, the
+	 * boundary between its last element and the next field is ambiguous.
+	 */
+	count(value: number): this {
+		this.len(value);
 		return this;
 	}
 
@@ -87,8 +110,7 @@ export class HashBuilder {
 	 * Null/undefined → empty string (matching BE's unwrap_or_default).
 	 */
 	datetime(value: string | null | undefined): this {
-		this.parts.push(this.encoder.encode(value ? value.replace("T", " ").replace("Z", "") : ""));
-		return this;
+		return this.str(value ? value.replace("T", " ").replace("Z", "") : "");
 	}
 
 	/** Compute the final SHA-256 hex digest. */

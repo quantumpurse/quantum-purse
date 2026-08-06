@@ -48,7 +48,9 @@ export async function fetchServerPublicKey(): Promise<string> {
 // Challenge derivation — matches BE's services/address_binding.rs logic.
 // ---------------------------------------------------------------------------
 
-/** Derive the per-address challenge: sha256(event_hash || address). */
+/// Derive the per-address challenge: sha256(event_hash || address), each
+/// field length-prefixed per Consensus rule 5. Must stay byte-identical to
+/// the BE's version in `services/address_binding.rs`.
 function deriveChallenge(eventHash: string, address: string): Promise<string> {
 	return new HashBuilder().str(eventHash).str(address).digest();
 }
