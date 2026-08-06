@@ -17,6 +17,7 @@ import {
   createBindingSession,
   completeBinding,
   fetchServerPublicKey,
+  verifyAppendAck,
   AddressBindingEvent,
   type AccountInfo,
 } from "../../../../core/daov2/dao_v2";
@@ -170,8 +171,21 @@ const XXX: React.FC = () => {
         Array.from(selectedAddressIndices),
       );
 
-      // Download binding receipt for fraud-proof archival.
-      downloadReceipt(event, response.commit_hash, `binding-${Date.now()}.json`);
+      // Verify the server's append ack, then download the binding receipt
+      // for fraud-proof archival. On an invalid attestation the co-signed
+      // event is saved without the ack (an unverifiable ack proves nothing
+      // and must not masquerade as a receipt) and the flow stops loudly.
+      try {
+        await verifyAppendAck(event.event_hash, response);
+      } catch {
+        downloadReceipt(event, null, `binding-${Date.now()}.json`);
+        message.error(
+          "Server attestation failed verification — receipt saved; the event may not be safely appended.",
+          8,
+        );
+        return;
+      }
+      downloadReceipt(event, response, `binding-${Date.now()}.json`);
 
       // Close modal.
       setAccountInfoModalVisible(false);
