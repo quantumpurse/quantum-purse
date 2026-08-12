@@ -18,6 +18,7 @@ import {
   completeBinding,
   fetchServerPublicKey,
   verifyAppendAck,
+  extractAccountPubkey,
   AddressBindingEvent,
   type AccountInfo,
 } from "../../../../core/daov2/dao_v2";
@@ -73,6 +74,13 @@ const XXX: React.FC = () => {
     setIsBinding(true);
 
     try {
+      // Step0: Parse the pasted composite key BEFORE any network call. The
+      // embedded pubkey is the wallet's only trustworthy source for the
+      // account key (the DAO website verified it against the user's passkey
+      // before display); a malformed paste must fail loudly here.
+      const trimmedKey = apiKey.trim();
+      const accountPubkey = extractAccountPubkey(trimmedKey);
+
       // Get all lock script arguments and convert to addresses.
       const allLockArgs = await quantum.getAllLockScriptArgs();
       const allAddresses = allLockArgs.map(lockArg =>
@@ -80,7 +88,7 @@ const XXX: React.FC = () => {
       );
 
       // Step1: Open a binding session and get challenges from the server.
-      const response = await createBindingSession(apiKey, allAddresses);
+      const response = await createBindingSession(trimmedKey, allAddresses);
 
       if (!response.payload || !response.account_info) {
         throw new Error("Invalid response from server — missing payload or account info.");
@@ -99,7 +107,7 @@ const XXX: React.FC = () => {
       // Step2: Fetch the server's public key and verify the payload before showing
       // the confirmation modal. This ensures the wallet only signs verified data.
       const serverPublicKey = await fetchServerPublicKey();
-      await AddressBindingEvent.verifyBinding(response.payload as any, serverPublicKey, allAddresses);
+      await AddressBindingEvent.verifyBinding(response.payload as any, serverPublicKey, allAddresses, accountPubkey);
 
       // Build lockScriptArgs in the same order as payload.ckb_addresses
       // to guarantee index alignment regardless of BE ordering.
@@ -164,7 +172,7 @@ const XXX: React.FC = () => {
       // Derive challenges, sign them, and submit the completed event.
       // Only selected addresses are signed; the rest get empty signatures.
       const { response, event } = await completeBinding(
-        apiKey,
+        apiKey.trim(),
         bindingPayload,
         lockScriptArgs,
         quantum,
