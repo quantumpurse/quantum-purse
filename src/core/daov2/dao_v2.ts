@@ -27,6 +27,34 @@ export interface BindingSessionResponse {
 }
 
 // ---------------------------------------------------------------------------
+// Composite API key: format validation and account-key extraction.
+// ---------------------------------------------------------------------------
+
+// Format: dao_<64-hex account_pubkey>_<32-char alphanumeric secret>.
+// Mirrors the FE's `crypto/binding_api_key_parser.ts`.
+// Only the pubkey is ever extracted: the secret never acts alone — the whole
+// composite is the Bearer credential, hashed as one string by the server —
+// but its shape stays in the pattern so a truncated paste fails loudly here
+// instead of surfacing later as a confusing session-auth rejection.
+const API_KEY_PATTERN = /^dao_([0-9a-f]{64})_([A-Za-z0-9]{32})$/;
+
+/// Validate the composite binding API key pasted by the user and return the
+/// embedded account public key (64 hex chars). That pubkey is the wallet's
+/// only trustworthy source for the account key (the FE verified it against
+/// the user's passkey before display), so a malformed paste must fail
+/// loudly here — before any network call.
+export function extractAccountPubkey(composite: string): string {
+	const match = API_KEY_PATTERN.exec(composite);
+	if (!match) {
+		throw new Error(
+			"Malformed API key: expected dao_<64-hex pubkey>_<32-char secret>. " +
+				"Re-copy the full key from the DAO website.",
+		);
+	}
+	return match[1];
+}
+
+// ---------------------------------------------------------------------------
 // Server public key.
 // ---------------------------------------------------------------------------
 
