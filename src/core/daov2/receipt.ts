@@ -1,7 +1,7 @@
 // Download a governance event receipt as a JSON file.
 //
 // A valid receipt MUST contain the server's ack of the append (Consensus
-// rule 1): the checkpoint (leaf_index, mmr_root) and the attestation A_n
+// security assumption 1): the checkpoint (leaf_index, mmr_root) and the attestation A_n
 // signed over it. Without the ack the receipt is investigation-grade
 // evidence only — it proves co-signing, not submission.
 export interface AppendAck {
