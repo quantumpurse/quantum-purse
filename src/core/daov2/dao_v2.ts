@@ -77,7 +77,7 @@ export async function fetchServerPublicKey(): Promise<string> {
 // ---------------------------------------------------------------------------
 
 /// Derive the per-address challenge: sha256(event_hash || address), each
-/// field length-prefixed per Consensus rule 5. Must stay byte-identical to
+/// field length-prefixed per Consensus rule 3. Must stay byte-identical to
 /// the BE's version in `services/address_binding.rs`.
 function deriveChallenge(eventHash: string, address: string): Promise<string> {
 	return new HashBuilder().str(eventHash).str(address).digest();
@@ -188,9 +188,9 @@ export async function completeBinding(
 // ---------------------------------------------------------------------------
 
 /**
- * Verify the server's ack of an append (Consensus rule 1): the attestation
+ * Verify the server's ack of an append (Security assumption 1): the attestation
  * must be the server's signature over the checkpoint digest
- * `SHA-256(leaf_index as u64 LE ‖ leaf_hash ‖ mmr_root)` (Consensus rule 8).
+ * `SHA-256(leaf_index as u64 LE ‖ leaf_hash ‖ mmr_root)` (Consensus rule 4).
  *
  * `eventHash` MUST be the locally held hash of the payload the user signed —
  * never a value echoed by the server — because using it as the leaf hash is

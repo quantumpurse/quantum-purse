@@ -49,7 +49,7 @@ export class HashBuilder {
 
 	/**
 	 * Append a variable-length UTF-8 string: `u32 LE byte length ‖ bytes`
-	 * (Consensus rule 5). The prefix is what makes the field concatenation
+	 * (Consensus rule 3). The prefix is what makes the field concatenation
 	 * injective — without it, title "AB" ‖ description "C" and title "A" ‖
 	 * description "BC" produce the same hash.
 	 */
