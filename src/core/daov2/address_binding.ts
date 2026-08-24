@@ -101,14 +101,33 @@ export class AddressBindingEvent {
 			);
 		}
 
-		// Verify addresses are a subset of what the wallet sent.
+		// CONSENSUS-CRITICAL: the event must list exactly what the user
+		// chose, not a subset of it. The user picks before the session
+		// request, so the server has no honest reason to drop one — and a
+		// dropped address is how a compromised server removes someone's
+		// voting power while every later check still passes. Compared as
+		// sets: order changes the hash but not which addresses are bound.
 		const sentSet = new Set(sentAddresses);
-		for (const addr of event.ckb_addresses) {
+		const returnedSet = new Set(event.ckb_addresses);
+		for (const addr of returnedSet) {
 			if (!sentSet.has(addr)) {
 				throw new Error(
 					`Server returned an address the wallet did not send: ${addr}`,
 				);
 			}
+		}
+		for (const addr of sentSet) {
+			if (!returnedSet.has(addr)) {
+				throw new Error(
+					`Server dropped address ${addr} from the binding — ` +
+						"refresh your bound addresses and try again.",
+				);
+			}
+		}
+		if (returnedSet.size !== event.ckb_addresses.length) {
+			throw new Error(
+				"Address duplication detected from server — refusing to sign.",
+			);
 		}
 
 		// Only binding activities should come through this path.

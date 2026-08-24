@@ -16,6 +16,7 @@ import { quantum } from "../../../store/models/wallet";
 import {
   createBindingSession,
   completeBinding,
+  fetchBoundAddresses,
   fetchServerPublicKey,
   verifyAppendAck,
   extractAccountPubkey,
@@ -33,7 +34,8 @@ const XXX: React.FC = () => {
   const [isBinding, setIsBinding] = useState<boolean>(false);
   const [accountInfoModalVisible, setAccountInfoModalVisible] = useState<boolean>(false);
   const [accountInfo, setAccountInfo] = useState<AccountInfo | null>(null);
-  const [bindingPayload, setBindingPayload] = useState<AddressBindingEvent | null>(null);
+  // The account key parsed from the pasted API key, held for the confirm step.
+  const [accountPubkey, setAccountPubkey] = useState<string>("");
   const [addressesToBind, setAddressesToBind] = useState<string[]>([]);
   const [lockScriptArgs, setLockScriptArgs] = useState<string[]>([]);
   const [selectedAddressIndices, setSelectedAddressIndices] = useState<Set<number>>(new Set());
@@ -87,15 +89,13 @@ const XXX: React.FC = () => {
         quantum.getAddress(lockArg as Hex)
       );
 
-      // Step1: Open a binding session and get challenges from the server.
-      const response = await createBindingSession(trimmedKey, allAddresses);
+      // Step1: Ask which addresses are already bound and subtract them here.
+      // The server is never told what this wallet holds, so it cannot name an
+      // unbound address to keep it out of the user's choice.
+      const { boundAddresses, accountInfo } = await fetchBoundAddresses(trimmedKey);
 
-      if (!response.payload || !response.account_info) {
-        throw new Error("Invalid response from server — missing payload or account info.");
-      }
-
-      // The payload's ckb_addresses are the unbound subset (BE already filtered).
-      const unboundAddresses = response.payload.ckb_addresses;
+      const boundSet = new Set(boundAddresses);
+      const unboundAddresses = allAddresses.filter((addr) => !boundSet.has(addr));
       if (unboundAddresses.length === 0) {
         message.info({
           content: "All your addresses are already bound to this account.",
@@ -104,13 +104,6 @@ const XXX: React.FC = () => {
         return;
       }
 
-      // Step2: Fetch the server's public key and verify the payload before showing
-      // the confirmation modal. This ensures the wallet only signs verified data.
-      const serverPublicKey = await fetchServerPublicKey();
-      await AddressBindingEvent.verifyBinding(response.payload as any, serverPublicKey, allAddresses, accountPubkey);
-
-      // Build lockScriptArgs in the same order as payload.ckb_addresses
-      // to guarantee index alignment regardless of BE ordering.
       const addressToLockArgs = new Map<string, string>();
       for (let i = 0; i < allAddresses.length; i++) {
         addressToLockArgs.set(allAddresses[i], allLockArgs[i]);
@@ -121,9 +114,11 @@ const XXX: React.FC = () => {
         return lockArgs;
       });
 
-      // Store verified data for the confirmation step. All addresses selected by default.
-      setAccountInfo(response.account_info);
-      setBindingPayload(response.payload);
+      // Step2: Let the user choose. The session is opened only after they
+      // confirm, so the event lists exactly their choice — which is what lets
+      // the wallet demand the server return that same set, unaltered.
+      setAccountPubkey(accountPubkey);
+      setAccountInfo(accountInfo);
       setAddressesToBind(unboundAddresses);
       setLockScriptArgs(unboundLockArgs);
       setSelectedAddressIndices(new Set(unboundAddresses.map((_, i) => i)));
@@ -158,8 +153,8 @@ const XXX: React.FC = () => {
       return;
     }
 
-    if (!bindingPayload) {
-      message.error("No binding payload available. Please retry.");
+    if (selectedAddressIndices.size === 0) {
+      message.warning("Select at least one address to bind.");
       return;
     }
 
@@ -169,14 +164,51 @@ const XXX: React.FC = () => {
       // Show loading state (duration 0 = infinite, dismissed manually).
       dismissLoading = message.loading('Signing challenges and completing address binding...', 0);
 
-      // Derive challenges, sign them, and submit the completed event.
-      // Only selected addresses are signed; the rest get empty signatures.
-      const { response, event } = await completeBinding(
+      // The user's choice, in the order the wallet listed it.
+      const selectedAddress = addressesToBind.filter((_, i) => selectedAddressIndices.has(i));
+      const chosenLockArgs = lockScriptArgs.filter((_, i) => selectedAddressIndices.has(i));
+
+      // Step3: Open the session for exactly those addresses, then require the event
+      // to list that same set. A server that drops one is removing voting
+      // power, and after this point every later check would still pass.
+      const response = await createBindingSession(apiKey.trim(), selectedAddress);
+      if (!response.payload) {
+        throw new Error("Invalid response from server — missing payload.");
+      }
+
+      const serverPublicKey = await fetchServerPublicKey();
+
+      // Step4: verify the intention is stuill intact from the returned payload from server
+      await AddressBindingEvent.verifyBinding(
+        response.payload as any,
+        serverPublicKey,
+        selectedAddress,
+        accountPubkey,
+      );
+
+      // Step5: Prepare to sign. Signatures are positional — slot i attests
+      // ckb_addresses[i] — so the keys must follow the event's order, not
+      // ours. verifyBinding above compares the two lists as sets, which
+      // accepts a reordered reply, so re-pair by address rather than assume
+      // the server echoed our order back.
+      const lockArgsByAddress = new Map<string, string>();
+      selectedAddress.forEach((addr, i) => lockArgsByAddress.set(addr, chosenLockArgs[i]));
+
+      const orderedLockArgs = response.payload.ckb_addresses.map((addr) => {
+        const lockArgs = lockArgsByAddress.get(addr);
+        // Defense in depth: set equality already proved every returned address is
+        // one we chose. Kept so a future looser check fails here, loudly,
+        // instead of signing the wrong address with the wrong key.
+        if (!lockArgs) throw new Error(`No lock args found for address ${addr}`);
+        return lockArgs;
+      });
+
+      // Derive challenges, sign every listed address, and submit.
+      const { response: verifyResponse, event } = await completeBinding(
         apiKey.trim(),
-        bindingPayload,
-        lockScriptArgs,
+        response.payload,
+        orderedLockArgs,
         quantum,
-        Array.from(selectedAddressIndices),
       );
 
       // Verify the server's append ack, then download the binding receipt
@@ -184,7 +216,7 @@ const XXX: React.FC = () => {
       // event is saved without the ack (an unverifiable ack proves nothing
       // and must not masquerade as a receipt) and the flow stops loudly.
       try {
-        await verifyAppendAck(event.event_hash, response);
+        await verifyAppendAck(event.event_hash, verifyResponse);
       } catch {
         downloadReceipt(event, null, `binding-${Date.now()}.json`);
         message.error(
@@ -193,13 +225,15 @@ const XXX: React.FC = () => {
         );
         return;
       }
-      downloadReceipt(event, response, `binding-${Date.now()}.json`);
+      downloadReceipt(event, verifyResponse, `binding-${Date.now()}.json`);
 
       // Close modal.
       setAccountInfoModalVisible(false);
 
       // Show success message.
-      const boundCount = response.bound_addresses ? response.bound_addresses.length : addressesToBind.length;
+      const boundCount = verifyResponse.bound_addresses
+        ? verifyResponse.bound_addresses.length
+        : selectedAddressIndices.size;
       message.success({
         content: `Successfully bound ${boundCount} address(es) to your account!`,
         duration: 5,
@@ -207,7 +241,7 @@ const XXX: React.FC = () => {
 
       // Clear state after successful binding.
       setAccountInfo(null);
-      setBindingPayload(null);
+      setAccountPubkey("");
       setAddressesToBind([]);
       setLockScriptArgs([]);
       setSelectedAddressIndices(new Set());
@@ -242,7 +276,7 @@ const XXX: React.FC = () => {
   const handleCancelBinding = () => {
     setAccountInfoModalVisible(false);
     setAccountInfo(null);
-    setBindingPayload(null);
+    setAccountPubkey("");
     setAddressesToBind([]);
     setLockScriptArgs([]);
     setSelectedAddressIndices(new Set());
