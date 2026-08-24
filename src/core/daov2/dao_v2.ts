@@ -87,6 +87,40 @@ function deriveChallenge(eventHash: string, address: string): Promise<string> {
 // Public API — called by the wallet UI.
 // ---------------------------------------------------------------------------
 
+/**
+ * Fetch the addresses this account has already bound.
+ *
+ * The wallet subtracts these from the addresses it holds and shows the user
+ * the rest to choose from. Asking this way — "which are bound?" rather than
+ * "is this one bound?" — means the server is never told which addresses the
+ * wallet holds, so it cannot name an unbound one to keep it out of the
+ * user's choice.
+ */
+export async function fetchBoundAddresses(
+	apiKey: string,
+): Promise<{ boundAddresses: string[]; accountInfo: AccountInfo }> {
+	const response = await fetch(
+		`${DAO_SERVER_URL}/governance/address-binding/wallet/bound-addresses`,
+		{ headers: { Authorization: `Bearer ${apiKey}` } },
+	);
+
+	if (!response.ok) {
+		const error = await response
+			.json()
+			.catch(() => ({ message: response.statusText }));
+		throw new Error(error.message || `Server error: ${response.status}`);
+	}
+
+	const data = await response.json();
+	if (!data.account_info) {
+		throw new Error("Invalid response from server — missing account info.");
+	}
+	return {
+		boundAddresses: data.bound_addresses ?? [],
+		accountInfo: data.account_info,
+	};
+}
+
 /** Request a binding session from the BE. Returns the raw server response. */
 export async function createBindingSession(
 	apiKey: string,
@@ -120,40 +154,34 @@ export async function createBindingSession(
  * 2. Sign each challenge with the corresponding address's private key.
  * 3. Fill bind_signatures in the event and submit to the BE.
  *
- * Supports selective binding: `selectedIndices` specifies which addresses
- * (by index into payload.ckb_addresses) the user chose to bind. Unselected
- * addresses get an empty string in bind_signatures. If omitted, all
- * addresses are signed (backward-compatible).
+ * The user has already chosen their addresses before the session request, so
+ * the event lists exactly that choice and every listed address gets signed.
+ * Consensus rule 8 forbids an empty slot: a blank used to mean "not selected",
+ * which is also what a tamperer's deletion looks like.
  */
 export async function completeBinding(
 	apiKey: string,
 	payload: AddressBindingEvent,
 	lockArgsList: string[],
 	quantumPurse: QuantumPurse,
-	selectedIndices?: number[],
 ) {
-	// Determine which addresses to sign.
-	const selected = selectedIndices
-		? new Set(selectedIndices)
-		: new Set(payload.ckb_addresses.map((_, i) => i));
-
-	// Step 1: Derive challenges only for selected addresses.
+	// Step 1: Derive a challenge for every listed address.
 	const messagesToSign: { message: string; lockArgs: string }[] = [];
-	const signIndexMap: number[] = [];
-
-	for (const i of selected) {
+	for (let i = 0; i < payload.ckb_addresses.length; i++) {
 		const challenge = await deriveChallenge(payload.event_hash, payload.ckb_addresses[i]);
 		messagesToSign.push({ message: challenge, lockArgs: lockArgsList[i] });
-		signIndexMap.push(i);
 	}
 
-	// Step 2: Sign selected challenges in batch with a single password request.
-	const signatures = await quantumPurse.signXXXMessagesBatch(messagesToSign);
+	// Step 2: Sign them in batch with a single password request.
+	const bindSignatures = await quantumPurse.signXXXMessagesBatch(messagesToSign);
 
-	// Step 3: Build bind_signatures array with empty strings for unselected.
-	const bindSignatures: string[] = payload.ckb_addresses.map(() => "");
-	for (let j = 0; j < signIndexMap.length; j++) {
-		bindSignatures[signIndexMap[j]] = signatures[j];
+	// One slot per address, all filled. The server and every auditor reject
+	// any other shape, so catch it here rather than after the round trip.
+	if (bindSignatures.length !== payload.ckb_addresses.length) {
+		throw new Error(
+			`Signing produced ${bindSignatures.length} signatures for ` +
+				`${payload.ckb_addresses.length} addresses — refusing to submit.`,
+		);
 	}
 
 	const completedEvent = {
