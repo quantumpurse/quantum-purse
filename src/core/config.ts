@@ -1,6 +1,12 @@
 // MAIN_NET flag passed in npm build command.
 export const IS_MAIN_NET: boolean = (process.env.MAIN_NET === "true");
 
+// Base URL of the DAO backend, passed in the npm build command. Defaults to
+// a local dev server. A build pointed elsewhere must also have that host in
+// the connect-src of the content security policy, or the browser engine
+// blocks the request before it is sent.
+export const DAO_SERVER_URL: string = process.env.DAO_SERVER_URL || "https://api.daov2.site";
+
 // Quantum-resistant Lock Script contract
 export const SPHINCSPLUS_LOCK = IS_MAIN_NET
   ? {
@@ -16,7 +22,7 @@ export const SPHINCSPLUS_LOCK = IS_MAIN_NET
   } : {
     codeHash:
       "0x147ecbb5c5127d982ee1362d2c2bb4267803da2eb006d150e88af6caaa0a7eaf",
-    hashType: "data1",
+    hashType: "data2",
     outPoint: {
       txHash:
         "0x631d9a6049fb1fc3790e89d9daf35abe535b5e754cd8c3404319319710f0b106",
