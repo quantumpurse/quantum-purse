@@ -1,4 +1,5 @@
 import QuantumPurse from "../quantum_purse";
+import { DAO_SERVER_URL } from "../config";
 import { AddressBindingEvent } from "./address_binding";
 import { HashBuilder, hexToBytes } from "./hash_builder";
 import { SchnorrProof } from "./schnorr_proof";
@@ -6,8 +7,6 @@ import type { AppendAck } from "./receipt";
 
 // Re-export so existing callers can import from this module.
 export { AddressBindingEvent };
-
-const DAO_SERVER_URL = "http://localhost:8080";
 
 // ---------------------------------------------------------------------------
 // Types matching the BE's session response.

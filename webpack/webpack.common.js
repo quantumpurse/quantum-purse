@@ -89,6 +89,13 @@ module.exports = {
     new webpack.DefinePlugin({
       "process.env.MAIN_NET": JSON.stringify(process.env.MAIN_NET || "false"),
       "process.env.NATIVE_APP": JSON.stringify(process.env.NATIVE_APP || "false"),
+      // Where the DAO backend lives. Defaults to a local dev server; set it
+      // in the build command to point a build at a deployed backend. Whatever
+      // it is set to must also be listed in the connect-src of the content
+      // security policy, in public/index.html and in main.js.
+      "process.env.DAO_SERVER_URL": JSON.stringify(
+        process.env.DAO_SERVER_URL || "https://api.daov2.site"
+      ),
     }),
   ],
   optimization: {

@@ -24,6 +24,7 @@ import {
   type AccountInfo,
 } from "../../../../core/daov2/dao_v2";
 import { downloadReceipt } from "../../../../core/daov2/receipt";
+import { DAO_SERVER_URL } from "../../../../core/config";
 import { Hex } from "@ckb-ccc/core";
 import { Authentication, AuthenticationRef } from "../../../components";
 
@@ -133,7 +134,7 @@ const XXX: React.FC = () => {
           <div>
             <p>{formatError(error)}</p>
             <p style={{ marginTop: '10px', fontSize: '12px', color: 'gray' }}>
-              Make sure the XXX server is running on http://localhost:8080
+              Make sure the XXX server is running on {DAO_SERVER_URL}
             </p>
           </div>
         ),
