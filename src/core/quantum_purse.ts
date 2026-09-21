@@ -255,6 +255,24 @@ export default class QuantumPurse extends QPSigner {
     this.initKeyVaultCore(variant);
   }
 
+  /**
+   * The chain tip as this wallet's own light client sees it, or null when it
+   * has no view yet — before the client starts, or before a peer answers and
+   * the reported height is still 0.
+   *
+   * Used to check the `ckb_block_height` the DAO server stamps on a binding
+   * challenge. The server's own word cannot vouch for that number, and this
+   * wallet already syncs headers for its own balances, so the tip it holds is
+   * a view the server did not supply.
+   */
+  public async getLocalTip(): Promise<bigint | null> {
+    if (!this.hasClientStarted) return null;
+
+    const height = (await this.client.getTipHeader()).number;
+    // `BigInt(0)` rather than `0n`: this package targets es2017.
+    return height === BigInt(0) ? null : height;
+  }
+
   /* get the sphincs+ paramset of choice*/
   public getSphincsPlusParamSet(): SpxVariant {
     if (!this.keyVault) throw new Error("KeyVault not initialized!");

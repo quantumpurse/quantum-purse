@@ -58,7 +58,7 @@ export function extractAccountPubkey(composite: string): string {
 // ---------------------------------------------------------------------------
 
 /** Fetch the server's Schnorr public key (64 hex chars) for proof verification. */
-export async function fetchServerPublicKey(): Promise<string> {
+export async function serverPublicKeyFromStorage(): Promise<string> {
 	const response = await fetch(`${DAO_SERVER_URL}/config/server-public-key`);
 
 	if (!response.ok) {
@@ -233,6 +233,6 @@ export async function verifyAppendAck(
 		.bytes(hexToBytes(ack.mmr_root))
 		.digest();
 
-	const serverKey = await fetchServerPublicKey();
+	const serverKey = await serverPublicKeyFromStorage();
 	await SchnorrProof.fromHex(ack.attestation).verifyWithKey(digest, serverKey);
 }

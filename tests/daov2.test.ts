@@ -109,10 +109,90 @@ describe("DAO v2 binding", () => {
           pubkeyHex,
           ["ckt1qexample1", "ckt1qexample2"],
           "cc".repeat(32), // pasted key differs from event.account_pubkey
+          null, // no synced tip; the key gate fires long before the height check
         );
         expect.fail("verifyBinding() should have refused the key mismatch");
       } catch (error) {
         expect(String(error)).to.match(/different account key/i);
+      }
+    });
+  });
+
+  /**
+   * The server stamps ckb_block_height and it is inside the hash the SPHINCS+
+   * keys sign. The expiry check cannot catch a stale one: a challenge can
+   * carry an honest expired_at and still point at an old block. Only a tip the
+   * server did not supply settles it, and this wallet runs a light client.
+   *
+   * The vector fixture is past-dated, so Date.now is pinned inside its window
+   * to reach the height check without changing any hashed field.
+   */
+  describe("verifyBinding block height gate", () => {
+    const VECTOR_HEIGHT = 12345678;
+    const INSIDE_WINDOW = Date.parse("2026-01-02T03:04:10Z");
+    let realNow: () => number;
+
+    beforeEach(() => {
+      realNow = Date.now;
+      Date.now = () => INSIDE_WINDOW;
+    });
+
+    afterEach(() => {
+      Date.now = realNow;
+    });
+
+    async function verifyWithTip(localTip: bigint | null) {
+      const { proof, pubkeyHex } = serverProofFor(VECTOR_HASH);
+      await AddressBindingEvent.verifyBinding(
+        vectorPayload({ server_proof: proof }),
+        pubkeyHex,
+        ["ckt1qexample1", "ckt1qexample2"],
+        ACCOUNT_PUBKEY,
+        localTip,
+      );
+    }
+
+    it("accepts a height equal to the wallet's own tip", async () => {
+      await verifyWithTip(BigInt(VECTOR_HEIGHT));
+    });
+
+    // The light client trails the chain, so an honest server is normally a
+    // little ahead; both directions are allowed up to the tolerance.
+    it("accepts a height up to 2 blocks from the tip, either way", async () => {
+      await verifyWithTip(BigInt(VECTOR_HEIGHT - 2));
+      await verifyWithTip(BigInt(VECTOR_HEIGHT + 2));
+    });
+
+    it("refuses a height further behind the tip than the tolerance", async () => {
+      try {
+        await verifyWithTip(BigInt(VECTOR_HEIGHT + 3));
+        expect.fail("verifyBinding() should have refused the stale height");
+      } catch (error) {
+        expect(String(error)).to.match(/block height/i);
+      }
+    });
+
+    it("refuses a height further ahead of the tip than the tolerance", async () => {
+      try {
+        await verifyWithTip(BigInt(VECTOR_HEIGHT - 3));
+        expect.fail("verifyBinding() should have refused the future height");
+      } catch (error) {
+        expect(String(error)).to.match(/block height/i);
+      }
+    });
+
+    /**
+     * Before a peer answers, the wallet has no view of the chain. That must
+     * block signing rather than wave the binding through — otherwise a
+     * compromised server simply waits for a wallet with nothing to check
+     * against.
+     */
+    it("refuses to sign when the wallet has no tip yet", async () => {
+      try {
+        await verifyWithTip(null);
+        expect.fail("verifyBinding() should have refused without a tip");
+      } catch (error) {
+        expect(String(error)).to.match(/not synced/i);
       }
     });
   });

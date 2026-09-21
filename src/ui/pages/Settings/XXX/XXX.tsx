@@ -17,7 +17,7 @@ import {
   createBindingSession,
   completeBinding,
   fetchBoundAddresses,
-  fetchServerPublicKey,
+  serverPublicKeyFromStorage,
   verifyAppendAck,
   extractAccountPubkey,
   AddressBindingEvent,
@@ -177,14 +177,18 @@ const XXX: React.FC = () => {
         throw new Error("Invalid response from server — missing payload.");
       }
 
-      const serverPublicKey = await fetchServerPublicKey();
+      const serverPublicKey = await serverPublicKeyFromStorage();
 
-      // Step4: verify the intention is stuill intact from the returned payload from server
+      // Step4: verify the intention is stuill intact from the returned payload from server.
+      // The tip comes from this wallet's own light client, so the stamped
+      // block height is checked against a view the server did not supply.
+      const localTip = await quantum.getLocalTip();
       await AddressBindingEvent.verifyBinding(
         response.payload as any,
         serverPublicKey,
         selectedAddress,
         accountPubkey,
+        localTip,
       );
 
       // Step5: Prepare to sign. Signatures are positional — slot i attests
