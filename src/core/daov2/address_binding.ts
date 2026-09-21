@@ -1,6 +1,20 @@
 import { HashBuilder } from "./hash_builder";
 import { SchnorrProof } from "./schnorr_proof";
 
+/**
+ * How far the stamped `ckb_block_height` may sit from the tip this wallet
+ * synced, in either direction. A CKB block is 8 seconds, so this is about 16
+ * seconds of slack. The light client was measured trailing a full node by up
+ * to 3 blocks, so an honest challenge can occasionally fall outside this and
+ * be refused; the number is a deliberate trade for a tight bound. Held here
+ * rather than read from the challenge: the point is to check against a number
+ * the server did not supply.
+ *
+ * `BigInt(2)` rather than `2n`: this package targets es2017, which has no
+ * bigint literals.
+ */
+const BLOCK_HEIGHT_TOLERANCE = BigInt(2);
+
 /// Address binding/unbinding event model.
 ///
 /// Mirrors BE's `models/address_binding.rs`. Common governance fields plus
@@ -83,6 +97,7 @@ export class AddressBindingEvent {
 		serverPublicKeyHex: string,
 		sentAddresses: string[],
 		expectedAccountPubkey: string,
+		localTip: bigint | null,
 	): Promise<void> {
 		await AddressBindingEvent.verify(payload, serverPublicKeyHex);
 
@@ -153,6 +168,51 @@ export class AddressBindingEvent {
 		}
 		if (expiresAt < Date.now()) {
 			throw new Error("Binding challenge has expired. Please retry.");
+		}
+
+		AddressBindingEvent.checkBlockHeight(event, localTip);
+	}
+
+	/**
+	 * Consensus rule 15: the stamped `ckb_block_height` must sit within
+	 * BLOCK_HEIGHT_TOLERANCE of a tip this wallet synced for itself.
+	 *
+	 * The height is the server's claim about which chain state the binding
+	 * belongs to, and it is inside the hash the SPHINCS+ keys sign. The expiry
+	 * check above cannot catch a stale one: a challenge can carry an honest
+	 * `expired_at` and still point at a block from an hour ago. Only a tip the
+	 * server did not supply settles it, and this wallet runs a light client
+	 * already.
+	 */
+	private static checkBlockHeight(
+		event: AddressBindingEvent,
+		localTip: bigint | null,
+	): void {
+		const declared = event.ckb_block_height;
+		if (typeof declared !== "number" || !Number.isSafeInteger(declared)) {
+			throw new Error(
+				"Binding event has no usable ckb_block_height — refusing to sign.",
+			);
+		}
+
+		if (localTip === null) {
+			throw new Error(
+				"This wallet has not synced the CKB chain yet, so the binding's " +
+					"block height cannot be checked. Wait for the light client and retry.",
+			);
+		}
+
+		const zero = BigInt(0);
+		const drift = BigInt(declared) - localTip;
+		const magnitude = drift < zero ? -drift : drift;
+		if (magnitude > BLOCK_HEIGHT_TOLERANCE) {
+			const direction = drift < zero ? "behind" : "ahead of";
+			throw new Error(
+				`Binding event's block height ${declared} is ${magnitude} blocks ` +
+					`${direction} the tip this wallet synced (${localTip}), tolerance ` +
+					`${BLOCK_HEIGHT_TOLERANCE}. Either this wallet is out of step with ` +
+					`the chain or the server is misreporting it — refusing to sign.`,
+			);
 		}
 	}
 

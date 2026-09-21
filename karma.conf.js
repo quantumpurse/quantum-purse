@@ -52,6 +52,12 @@ module.exports = function (config) {
         new webpack.DefinePlugin({
           "process.env.MAIN_NET": JSON.stringify(process.env.MAIN_NET || "false"),
           "process.env.NATIVE_APP": JSON.stringify(process.env.NATIVE_APP || "false"),
+          // Must mirror webpack.common.js: core/config.ts reads this, and an
+          // un-replaced process.env is a ReferenceError that kills the whole
+          // suite at module load, not just the tests that use it.
+          "process.env.DAO_SERVER_URL": JSON.stringify(
+            process.env.DAO_SERVER_URL || "https://api.daov2.site"
+          ),
         }),
       ],
     },
