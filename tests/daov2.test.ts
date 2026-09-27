@@ -130,7 +130,7 @@ describe("DAO v2 binding", () => {
    */
   describe("verifyBinding block height gate", () => {
     const VECTOR_HEIGHT = 12345678;
-    const INSIDE_WINDOW = Date.parse("2026-01-02T03:04:10Z");
+    const INSIDE_WINDOW = Date.parse("2026-01-02T03:04:06Z");
     let realNow: () => number;
 
     beforeEach(() => {
@@ -264,7 +264,7 @@ describe("DAO v2 binding", () => {
       ).to.throw(/not after/i);
     });
 
-    it("refuses a created_at more than 10 seconds ahead of this clock", () => {
+    it("refuses a created_at more than 1 second ahead of this clock", () => {
       Date.now = () => Date.parse("2026-01-02T03:03:54Z");
       expect(() =>
         checkChallengeFreshness({ created_at: CREATED, expired_at: "2026-01-02T03:04:25" }),
@@ -274,9 +274,9 @@ describe("DAO v2 binding", () => {
     // Past a full 20-second window the clock check already refuses, so only a
     // narrower window can expire while created_at is still near this clock.
     it("refuses a challenge that has already expired", () => {
-      Date.now = () => Date.parse("2026-01-02T03:04:09Z");
+      Date.now = () => Date.parse("2026-01-02T03:04:06Z");
       expect(() =>
-        checkChallengeFreshness({ created_at: CREATED, expired_at: "2026-01-02T03:04:08" }),
+        checkChallengeFreshness({ created_at: CREATED, expired_at: "2026-01-02T03:04:06" }),
       ).to.throw(/expired/i);
     });
 

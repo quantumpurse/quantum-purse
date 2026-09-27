@@ -23,7 +23,7 @@ const BLOCK_HEIGHT_TOLERANCE = BigInt(2);
 const CO_SIGN_WINDOW_MS = 20000;
 
 /** How far `created_at` may sit from this device's clock, in either direction. */
-const CLOCK_SKEW_TOLERANCE_MS = 10000;
+const CLOCK_SKEW_TOLERANCE_MS = 1000;
 
 /**
  * Read a backend timestamp as UTC.
