@@ -1,6 +1,7 @@
 import { expect } from "chai";
 import { schnorr } from "@noble/curves/secp256k1";
 import { extractAccountPubkey, AddressBindingEvent } from "../src/core/daov2/dao_v2";
+import { checkChallengeFreshness } from "../src/core/daov2/address_binding";
 import { bytesToHex } from "../src/core/daov2/hash_builder";
 
 // Cross-implementation known-answer vector (BACKLOG #6). The same fixture is
@@ -194,6 +195,105 @@ describe("DAO v2 binding", () => {
       } catch (error) {
         expect(String(error)).to.match(/not synced/i);
       }
+    });
+  });
+
+  /**
+   * Consensus rule 15: the server composes created_at and expired_at, and both
+   * sit inside the hash the SPHINCS+ keys sign. "Not expired" alone lets a
+   * server hand out a wide window, or one parked away from the real time, and
+   * hold the signature longer than the protocol allows.
+   */
+  describe("verifyBinding clock gate", () => {
+    let realNow: () => number;
+
+    beforeEach(() => {
+      realNow = Date.now;
+    });
+
+    afterEach(() => {
+      Date.now = realNow;
+    });
+
+    // The vector's window is 03:04:05 to 03:04:25. At 03:04:20 it has not
+    // expired, but created_at is 15 s behind this device's clock.
+    it("refuses a live challenge whose created_at is too far from this clock", async () => {
+      Date.now = () => Date.parse("2026-01-02T03:04:20Z");
+      const { proof, pubkeyHex } = serverProofFor(VECTOR_HASH);
+      try {
+        await AddressBindingEvent.verifyBinding(
+          vectorPayload({ server_proof: proof }),
+          pubkeyHex,
+          ["ckt1qexample1", "ckt1qexample2"],
+          ACCOUNT_PUBKEY,
+          BigInt(12345678),
+        );
+        expect.fail("verifyBinding() should have refused the skewed created_at");
+      } catch (error) {
+        expect(String(error)).to.match(/clock/i);
+      }
+    });
+  });
+
+  describe("checkChallengeFreshness", () => {
+    const CREATED = "2026-01-02T03:04:05";
+    let realNow: () => number;
+
+    beforeEach(() => {
+      realNow = Date.now;
+      Date.now = () => Date.parse("2026-01-02T03:04:06Z");
+    });
+
+    afterEach(() => {
+      Date.now = realNow;
+    });
+
+    it("accepts a 20-second window read at the moment it opens", () => {
+      checkChallengeFreshness({ created_at: CREATED, expired_at: "2026-01-02T03:04:25" });
+    });
+
+    it("refuses a window wider than 20 seconds", () => {
+      expect(() =>
+        checkChallengeFreshness({ created_at: CREATED, expired_at: "2026-01-02T03:04:26" }),
+      ).to.throw(/signing window/i);
+    });
+
+    it("refuses an expired_at that is not after created_at", () => {
+      expect(() =>
+        checkChallengeFreshness({ created_at: CREATED, expired_at: CREATED }),
+      ).to.throw(/not after/i);
+    });
+
+    it("refuses a created_at more than 10 seconds ahead of this clock", () => {
+      Date.now = () => Date.parse("2026-01-02T03:03:54Z");
+      expect(() =>
+        checkChallengeFreshness({ created_at: CREATED, expired_at: "2026-01-02T03:04:25" }),
+      ).to.throw(/clock/i);
+    });
+
+    // Past a full 20-second window the clock check already refuses, so only a
+    // narrower window can expire while created_at is still near this clock.
+    it("refuses a challenge that has already expired", () => {
+      Date.now = () => Date.parse("2026-01-02T03:04:09Z");
+      expect(() =>
+        checkChallengeFreshness({ created_at: CREATED, expired_at: "2026-01-02T03:04:08" }),
+      ).to.throw(/expired/i);
+    });
+
+    // The backend sends chrono's NaiveDateTime: six fractional digits, no
+    // zone. Read as local time it would fail the clock check for every user
+    // outside UTC.
+    it("reads the backend's zoneless microsecond timestamps as UTC", () => {
+      checkChallengeFreshness({
+        created_at: "2026-01-02T03:04:05.802087",
+        expired_at: "2026-01-02T03:04:25.802087",
+      });
+    });
+
+    it("refuses an unreadable timestamp instead of skipping the check", () => {
+      expect(() =>
+        checkChallengeFreshness({ created_at: "not a date", expired_at: "2026-01-02T03:04:25" }),
+      ).to.throw(/created_at/i);
     });
   });
 });

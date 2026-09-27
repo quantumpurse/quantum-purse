@@ -15,6 +15,97 @@ import { SchnorrProof } from "./schnorr_proof";
  */
 const BLOCK_HEIGHT_TOLERANCE = BigInt(2);
 
+/**
+ * The co-sign window. The same 20 seconds as CO_SIGN_EXPIRATION on the
+ * backend, held here on purpose: the point is to check the challenge against
+ * a number the server did not supply.
+ */
+const CO_SIGN_WINDOW_MS = 20000;
+
+/** How far `created_at` may sit from this device's clock, in either direction. */
+const CLOCK_SKEW_TOLERANCE_MS = 10000;
+
+/**
+ * Read a backend timestamp as UTC.
+ *
+ * The backend serialises a chrono `NaiveDateTime` — `2026-09-21T00:20:46.802087`,
+ * no zone — and JavaScript reads a zoneless timestamp as local time, which
+ * would fail every honest challenge for a user outside UTC. The wire format
+ * also carries six fractional digits where the ECMAScript date format
+ * specifies three, so the extra digits are trimmed rather than left to the
+ * engine.
+ */
+function parseWireTimestamp(value: unknown): number {
+	if (typeof value !== "string" || value.length === 0) return NaN;
+	const trimmed = value.replace(/(\.\d{3})\d+/, "$1");
+	const hasZone = /(?:Z|[+-]\d{2}:?\d{2})$/i.test(trimmed);
+	return Date.parse(hasZone ? trimmed : `${trimmed}Z`);
+}
+
+/**
+ * Consensus rule 15, the clock half: the challenge's window must be at most
+ * CO_SIGN_WINDOW_MS wide, its `created_at` within CLOCK_SKEW_TOLERANCE_MS of
+ * this device's clock, and it must not have expired.
+ *
+ * `created_at` and `expired_at` are set by the server and sit inside the hash
+ * the SPHINCS+ keys sign. "Not expired" alone lets a compromised server hand
+ * out a wide window, or one parked away from the real time, and hold the
+ * signatures longer than the protocol allows. The width bounds how long the
+ * window is; the skew bounds where it sits. An unreadable timestamp fails
+ * loudly instead of skipping the check.
+ *
+ * Mirrors `checkChallengeFreshness` in the DAO frontend. Exported for its tests.
+ */
+export function checkChallengeFreshness(payload: {
+	created_at: unknown;
+	expired_at: unknown;
+}): void {
+	const createdAt = parseWireTimestamp(payload.created_at);
+	if (!Number.isFinite(createdAt)) {
+		throw new Error(
+			`Unreadable created_at in binding event: "${payload.created_at}" — refusing to sign.`,
+		);
+	}
+	const expiredAt = parseWireTimestamp(payload.expired_at);
+	if (!Number.isFinite(expiredAt)) {
+		throw new Error(
+			`Unreadable expired_at in binding event: "${payload.expired_at}" — refusing to sign.`,
+		);
+	}
+
+	if (expiredAt <= createdAt) {
+		throw new Error(
+			"Binding event's expired_at is not after its created_at — refusing to sign.",
+		);
+	}
+
+	const windowMs = expiredAt - createdAt;
+	if (windowMs > CO_SIGN_WINDOW_MS) {
+		throw new Error(
+			`Server issued a ${windowMs / 1000}s signing window, but the co-sign ` +
+				`window is ${CO_SIGN_WINDOW_MS / 1000}s — refusing to sign.`,
+		);
+	}
+
+	const now = Date.now();
+	const skewMs = createdAt - now;
+	if (Math.abs(skewMs) > CLOCK_SKEW_TOLERANCE_MS) {
+		// The wallet cannot tell which side is wrong: a device clock that is
+		// off and a server misreporting time look identical from here.
+		const direction = skewMs > 0 ? "ahead of" : "behind";
+		throw new Error(
+			`Binding event's created_at is ${Math.abs(skewMs) / 1000}s ${direction} ` +
+				`this device's clock (tolerance ${CLOCK_SKEW_TOLERANCE_MS / 1000}s). ` +
+				`Either this device's clock is wrong or the server is misreporting ` +
+				`time — refusing to sign.`,
+		);
+	}
+
+	if (expiredAt <= now) {
+		throw new Error("Binding challenge has expired. Please retry.");
+	}
+}
+
 /// Address binding/unbinding event model.
 ///
 /// Mirrors BE's `models/address_binding.rs`. Common governance fields plus
@@ -90,7 +181,8 @@ export class AddressBindingEvent {
 	 *
 	 * Checks: hash integrity, server proof, account_pubkey matches the key
 	 * decoded from the pasted API key, addresses match what was sent,
-	 * is_binding is true, and event hasn't expired.
+	 * is_binding is true, and rule 15: the window, the clock and the block
+	 * height.
 	 */
 	static async verifyBinding(
 		payload: Record<string, unknown>,
@@ -152,24 +244,7 @@ export class AddressBindingEvent {
 			);
 		}
 
-		// The co-sign window must still be open (BE enforces this too; the
-		// wallet checks so the user isn't prompted to sign a dead event).
-		// An unreadable timestamp fails loudly instead of skipping the check:
-		// treating it as "not expired" would let a malformed expired_at
-		// disable the window entirely, which is what a hostile server would
-		// send to keep a stale challenge signable.
-		const expiresAt = Date.parse(
-			event.expired_at.endsWith("Z") ? event.expired_at : `${event.expired_at}Z`,
-		);
-		if (!Number.isFinite(expiresAt)) {
-			throw new Error(
-				`Unreadable expiry in binding event: "${event.expired_at}" — refusing to sign.`,
-			);
-		}
-		if (expiresAt < Date.now()) {
-			throw new Error("Binding challenge has expired. Please retry.");
-		}
-
+		checkChallengeFreshness(event);
 		AddressBindingEvent.checkBlockHeight(event, localTip);
 	}
 
