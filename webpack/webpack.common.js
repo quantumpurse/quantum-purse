@@ -96,6 +96,11 @@ module.exports = {
       "process.env.DAO_SERVER_URL": JSON.stringify(
         process.env.DAO_SERVER_URL || "https://api.daov2.site"
       ),
+      // The DAO backend's public key, pinned so the wallet does not take it
+      // from the backend it is checking. Empty means no pin.
+      "process.env.DAO_SERVER_PUBKEY": JSON.stringify(
+        process.env.DAO_SERVER_PUBKEY || ""
+      ),
     }),
   ],
   optimization: {

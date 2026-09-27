@@ -17,7 +17,7 @@ import {
   createBindingSession,
   completeBinding,
   fetchBoundAddresses,
-  serverPublicKeyFromStorage,
+  getServerPublicKey,
   verifyAppendAck,
   extractAccountPubkey,
   AddressBindingEvent,
@@ -177,7 +177,7 @@ const XXX: React.FC = () => {
         throw new Error("Invalid response from server — missing payload.");
       }
 
-      const serverPublicKey = await serverPublicKeyFromStorage();
+      const serverPublicKey = await getServerPublicKey();
 
       // Step4: verify the intention is stuill intact from the returned payload from server.
       // The tip comes from this wallet's own light client, so the stamped

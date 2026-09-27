@@ -58,6 +58,9 @@ module.exports = function (config) {
           "process.env.DAO_SERVER_URL": JSON.stringify(
             process.env.DAO_SERVER_URL || "https://api.daov2.site"
           ),
+          "process.env.DAO_SERVER_PUBKEY": JSON.stringify(
+            process.env.DAO_SERVER_PUBKEY || ""
+          ),
         }),
       ],
     },

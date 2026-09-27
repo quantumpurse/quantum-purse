@@ -7,6 +7,12 @@ export const IS_MAIN_NET: boolean = (process.env.MAIN_NET === "true");
 // blocks the request before it is sent.
 export const DAO_SERVER_URL: string = process.env.DAO_SERVER_URL || "https://api.daov2.site";
 
+// The DAO backend's Schnorr public key (64 hex chars), passed in the npm build
+// command. The wallet checks every server proof against it, so it must come
+// from somewhere other than the backend being checked. Empty means no pin:
+// the wallet then trusts the first key it sees and refuses if it changes.
+export const DAO_SERVER_PUBKEY: string = process.env.DAO_SERVER_PUBKEY || "";
+
 // Quantum-resistant Lock Script contract
 export const SPHINCSPLUS_LOCK = IS_MAIN_NET
   ? {

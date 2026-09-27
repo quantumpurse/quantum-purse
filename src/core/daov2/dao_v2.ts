@@ -1,5 +1,5 @@
 import QuantumPurse from "../quantum_purse";
-import { DAO_SERVER_URL } from "../config";
+import { DAO_SERVER_PUBKEY, DAO_SERVER_URL } from "../config";
 import { AddressBindingEvent } from "./address_binding";
 import { HashBuilder, hexToBytes } from "./hash_builder";
 import { SchnorrProof } from "./schnorr_proof";
@@ -57,18 +57,123 @@ export function extractAccountPubkey(composite: string): string {
 // Server public key.
 // ---------------------------------------------------------------------------
 
-/** Fetch the server's Schnorr public key (64 hex chars) for proof verification. */
-export async function serverPublicKeyFromStorage(): Promise<string> {
-	const response = await fetch(`${DAO_SERVER_URL}/config/server-public-key`);
+/**
+ * Where this wallet keeps the first server key it ever saw. Named in the
+ * mismatch error, so someone who regenerated SERVER_PRIVATE_KEY can clear it
+ * without having to read this file to find out how.
+ */
+const SERVER_KEY_STORAGE_KEY = "ckb-dao-v2-server-pubkey";
 
+let cachedServerPublicKey: string | null = null;
+
+/**
+ * The key this build was pinned to, or null when it pinned none. Compared
+ * without regard to case: both spellings of a hex string are the same 32 bytes,
+ * and the value is typed by hand into a build command.
+ */
+function specifiedServerPublicKey(): string | null {
+	const trimmed = DAO_SERVER_PUBKEY.trim();
+	return trimmed ? trimmed.toLowerCase() : null;
+}
+
+function serverPublicKeyFromStorage(): string | null {
+	try {
+		return window.localStorage.getItem(SERVER_KEY_STORAGE_KEY);
+	} catch {
+		return null;
+	}
+}
+
+/** False when storage is switched off or full, so the caller can say so. */
+function storeServerPublicKey(key: string): boolean {
+	try {
+		window.localStorage.setItem(SERVER_KEY_STORAGE_KEY, key);
+		return true;
+	} catch {
+		return false;
+	}
+}
+
+/**
+ * Fetch the server's public key and check it against an anchor this wallet
+ * holds for itself.
+ *
+ * Fetching the key from the same server whose proofs it verifies settles
+ * nothing on its own: a compromised server hands over its own key and its own
+ * proofs together, and every signature check then passes. So the fetched key
+ * has to agree with something the server did not supply. Two anchors,
+ * strongest first:
+ *
+ *  - `DAO_SERVER_PUBKEY`, pinned into the build. Correct from the very first
+ *    request, and needs no storage.
+ *  - the first key this wallet ever saw. This cannot catch a server that was
+ *    already lying the first time, but it does catch one whose key changes
+ *    afterwards — which is what a substituted key looks like from here.
+ *
+ * Mirrors `getServerPublicKey` in the DAO frontend.
+ */
+export async function getServerPublicKey(): Promise<string> {
+	if (cachedServerPublicKey) return cachedServerPublicKey;
+
+	const response = await fetch(`${DAO_SERVER_URL}/config/server-public-key`);
 	if (!response.ok) {
 		throw new Error(
 			`Failed to fetch server public key: ${response.status}`,
 		);
 	}
-
 	const data = await response.json();
-	return data.public_key;
+	if (!data.public_key) {
+		throw new Error("Failed to fetch server public key.");
+	}
+
+	const key = String(data.public_key).trim();
+	const serverPubkey = key.toLowerCase();
+	const specifiedKey = specifiedServerPublicKey();
+
+	if (specifiedKey) {
+		// The pin is the operator's deliberate statement, so it settles the
+		// question by itself — a key left in this wallet by an earlier deployment
+		// must not be able to block a correctly pinned build.
+		if (serverPubkey !== specifiedKey) {
+			throw new Error(
+				`SECURITY: the server returned public key ${key}, but this build ` +
+					`is pinned to ${specifiedKey}. Refusing to verify anything signed by an ` +
+					`unrecognised key — the server may be compromised or misconfigured.`,
+			);
+		}
+		// Keep storage in step with the pin.
+		storeServerPublicKey(specifiedKey);
+	} else {
+		const rememberedKey = serverPublicKeyFromStorage();
+		if (rememberedKey === null) {
+			if (!storeServerPublicKey(serverPubkey)) {
+				// Storage is switched off or full, so this wallet cannot notice the
+				// key changing under it. Say so rather than carry on quietly: a check
+				// that has stopped running is worse than one that was never there.
+				console.warn(
+					`Could not store the server's public key under ` +
+						`"${SERVER_KEY_STORAGE_KEY}". This wallet will not notice if the ` +
+						`key changes. Pin it with DAO_SERVER_PUBKEY to check it properly.`,
+				);
+			}
+		} else if (rememberedKey !== serverPubkey) {
+			throw new Error(
+				`SECURITY: the server returned public key ${key}, but this ` +
+					`wallet remembers ${rememberedKey}. Refusing to verify anything ` +
+					`signed by it — the server may be compromised. If this deployment ` +
+					`legitimately changed its key, the wallet must be rebuilt with ` +
+					`DAO_SERVER_PUBKEY set to the new one.`,
+			);
+		}
+	}
+
+	// Lowercase from here on. Everything downstream compares this against
+	// `bytesToHex` output with `!==` (schnorr_proof.ts), and that output is
+	// always lowercase — so any other spelling would fail every proof check with
+	// a misleading "signed by an unknown key". The errors above keep the
+	// server's own spelling, because there the point is what it actually sent.
+	cachedServerPublicKey = serverPubkey;
+	return serverPubkey;
 }
 
 // ---------------------------------------------------------------------------
@@ -233,6 +338,6 @@ export async function verifyAppendAck(
 		.bytes(hexToBytes(ack.mmr_root))
 		.digest();
 
-	const serverKey = await serverPublicKeyFromStorage();
+	const serverKey = await getServerPublicKey();
 	await SchnorrProof.fromHex(ack.attestation).verifyWithKey(digest, serverKey);
 }

@@ -7,7 +7,7 @@
   "scripts": {
     "start:web": "webpack serve --config ./webpack/webpack.dev.js",
     "build:web": "webpack --config ./webpack/webpack.prod.js",
-    "start:app": "npm run clean && MAIN_NET=false NATIVE_APP=true npm run build:web && electron .",
+    "start:app": "npm run clean && MAIN_NET=false NATIVE_APP=true DAO_SERVER_URL=http://localhost:8080 npm run build:web && electron .",
     "build:app:mac:arm64": "npm run build:app:prepare && npx electron-rebuild --arch arm64 && electron-builder --mac --arm64",
     "build:app:mac:x64": "npm run build:app:prepare && npx electron-rebuild --arch x64 && electron-builder --mac --x64",
     "build:app:linux:x64": "npm run build:app:prepare && npx electron-rebuild --arch x64 && electron-builder --linux --x64",
