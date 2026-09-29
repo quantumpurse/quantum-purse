@@ -1,6 +1,6 @@
 import { Grid, Tooltip } from "antd";
 import { MenuOutlined } from "@ant-design/icons";
-import React, { useContext, useEffect, useState } from "react";
+import React, { useContext, useEffect, useMemo, useState } from "react";
 import { useLocation } from "react-router-dom";
 import LayoutCtx from "../../context/layout_ctx";
 import { cx, shortenAddress, formatBalance } from "../../utils/methods";
@@ -10,15 +10,18 @@ import { RootState } from "../../store";
 import { Copy } from "../../components";
 import { PieChart, Pie, Cell, Label } from "recharts";
 import QuantumPurse from "../../../core/quantum_purse";
+import { QPClient } from "../../../core/ccc-adapter/qp_client";
 
 interface HeaderProps extends React.HTMLAttributes<HTMLDivElement> {}
 
 const Header: React.FC<HeaderProps> = ({ className, ...rest }) => {
   const isWalletActive = useSelector((state: RootState) => state.wallet.active);
-  const syncStatus = useSelector((state: RootState) => state.wallet.syncStatus);
   const wallet = useSelector((state: RootState) => state.wallet);
+  const syncStatusState = useSelector((state: RootState) => state.wallet.syncStatus);
   const { showSidebar, setShowSidebar } = useContext(LayoutCtx);
   const { useBreakpoint } = Grid;
+  const quantumPurse = QuantumPurse.getInstance();
+  const isLightClient = quantumPurse.client instanceof QPClient;
   const MAX_OUT_BOUNDS = 4; // Maximum number of outbound connections in light client config.
   const [isUpdatingBalance, setIsUpdatingBalance] = useState(false);
   const [isUpdatingBlocks, setIsUpdatingBlockInfo] = useState(false);
@@ -29,6 +32,21 @@ const Header: React.FC<HeaderProps> = ({ className, ...rest }) => {
   const balance = wallet.current?.balance;
   const locked = wallet.current?.lockedInDao;
   const noBalance = (balance == "0" && locked == "0");
+  const syncStatus = !isLightClient
+    ? {
+        nodeId: "NA",
+        connections: 0,
+        syncedBlock: 0,
+        tipBlock: 0,
+        syncedStatus: 0,
+        startBlock: 0,
+      }
+    : syncStatusState;
+  const shortenedNodeId = useMemo(
+    () => shortenAddress(syncStatus.nodeId, 3, 5),
+    [syncStatus.nodeId]
+  );
+
   const balanceData = noBalance
     ? [
         // Fake data for no balance, creating an "empty pie" effect.
@@ -151,13 +169,17 @@ const Header: React.FC<HeaderProps> = ({ className, ...rest }) => {
           <Tooltip
             title={
               !screens.md ? (
-                <>
-                  Tip: {syncStatus && syncStatus.tipBlock.toLocaleString()}
-                  <br />
-                  Synced: {syncStatus && syncStatus.syncedBlock.toLocaleString()}
-                  <br />
-                  Start: {syncStatus && syncStatus.startBlock.toLocaleString()}
-                </>
+                isLightClient ? (
+                  <>
+                    Tip: {syncStatus && syncStatus.tipBlock.toLocaleString()}
+                    <br />
+                    Synced: {syncStatus && syncStatus.syncedBlock.toLocaleString()}
+                    <br />
+                    Start: {syncStatus && syncStatus.startBlock.toLocaleString()}
+                  </>
+                ) : (
+                  <span>Public RPC</span>
+                )
               ) : (
                 ""
               )
@@ -182,9 +204,9 @@ const Header: React.FC<HeaderProps> = ({ className, ...rest }) => {
                   <Cell fill="#2196F3" />
                   <Cell fill="rgba(255,255,255,0.06)" />
                   <Label
-                    value={`${syncStatus && syncStatus.syncedStatus.toFixed(0)}%`}
+                    value={isLightClient ? `${syncStatus && syncStatus.syncedStatus.toFixed(0)}%` : "X"}
                     position="center"
-                    fill="var(--gray-01)"
+                    fill={isLightClient ? "var(--gray-01)" : "rgba(204, 54, 17, 0.84)"}
                     style={labelStyle}
                   />
                 </Pie>
@@ -193,9 +215,15 @@ const Header: React.FC<HeaderProps> = ({ className, ...rest }) => {
           </Tooltip>
           {screens.md && (
             <div className={styles.statusDetails}>
-              <span>Tip: {syncStatus && syncStatus.tipBlock.toLocaleString()}</span>
-              <span>Synced: {syncStatus && syncStatus.syncedBlock.toLocaleString()}</span>
-              <span>Start: {syncStatus && syncStatus.startBlock.toLocaleString()}</span>
+              {isLightClient ? (
+                <>
+                  <span>Tip: {syncStatus && syncStatus.tipBlock.toLocaleString()}</span>
+                  <span>Synced: {syncStatus && syncStatus.syncedBlock.toLocaleString()}</span>
+                  <span>Start: {syncStatus && syncStatus.startBlock.toLocaleString()}</span>
+                </>
+              ) : (
+                <span>Public RPC</span>
+              )}
             </div>
           )}
         </div>
@@ -205,19 +233,25 @@ const Header: React.FC<HeaderProps> = ({ className, ...rest }) => {
           <Tooltip
             title={
               !screens.md ? (
-                <>
-                  <div>
-                    Id: {" "}
-                    {syncStatus.nodeId && syncStatus.nodeId !== "NULL" ? (
-                      <Copy value={syncStatus.nodeId} style={{ display: 'inline-block' }}>
-                        <span className={styles.copyable}>{shortenAddress(syncStatus.nodeId, 3, 5)}</span>
-                      </Copy>
-                    ) : (
-                      <span>{syncStatus.nodeId}</span>
-                    )}
-                  </div>
-                  Connected: {parseInt(syncStatus.connections.toString())} / {MAX_OUT_BOUNDS}
-                </>
+                isLightClient ? (
+                  <>
+                    <div>
+                      Id: {" "}
+                      {syncStatus.nodeId && syncStatus.nodeId !== "NULL" ? (
+                        <Copy value={syncStatus.nodeId} style={{ display: 'inline-block' }}>
+                          <span className={styles.copyable}>{shortenedNodeId}</span>
+                        </Copy>
+                      ) : (
+                        <span>{syncStatus.nodeId}</span>
+                      )}
+                    </div>
+                    Connected: {parseInt(syncStatus.connections.toString())} / {MAX_OUT_BOUNDS}
+                  </>
+                ) : (
+                  <>
+                    <span>{quantumPurse.client.addressPrefix === "ckb" ? "Meepo Mainnet" : "Meepo Testnet"}</span>
+                  </>
+                )
               ) : (
                 ""
               )
@@ -242,9 +276,9 @@ const Header: React.FC<HeaderProps> = ({ className, ...rest }) => {
                   <Cell fill="#9C27B0" />
                   <Cell fill="rgba(255,255,255,0.06)" />
                   <Label
-                    value="P2P"
+                    value={isLightClient ? "P2P" : "X"}
                     position="center"
-                    fill="var(--gray-01)"
+                    fill={isLightClient ? "var(--gray-01)" : "rgba(204, 54, 17, 0.84)"}
                     style={labelStyle}
                   />
                 </Pie>
@@ -254,24 +288,28 @@ const Header: React.FC<HeaderProps> = ({ className, ...rest }) => {
           {screens.md && (
             <div className={styles.statusDetails}>
               <span className={styles.networkBadge}>
-                {QuantumPurse.getInstance().client.addressPrefix === "ckb" ? "Meepo Mainnet" : "Meepo Testnet"}
+                {quantumPurse.client.addressPrefix === "ckb" ? "Meepo Mainnet" : "Meepo Testnet"}
               </span>
 
-              <div>
-                Id: {" "}
-                {syncStatus.nodeId && syncStatus.nodeId !== "NULL" ? (
-                  <Copy value={syncStatus.nodeId} style={{ display: 'inline-block' }}>
-                    <span className={styles.copyable}>{shortenAddress(syncStatus.nodeId, 3, 5)}</span>
-                  </Copy>
-                ) : (
-                  <span>{syncStatus.nodeId}</span>
-                )}
-              </div>
+              {isLightClient && (
+                <>
+                  <div>
+                    Id: {" "}
+                    {syncStatus.nodeId && syncStatus.nodeId !== "NULL" ? (
+                      <Copy value={syncStatus.nodeId} style={{ display: 'inline-block' }}>
+                        <span className={styles.copyable}>{shortenedNodeId}</span>
+                      </Copy>
+                    ) : (
+                      <span>{syncStatus.nodeId}</span>
+                    )}
+                  </div>
 
-              {(syncStatus.connections != 0) ? (
-                <span>Connected: {parseInt(syncStatus.connections.toString())} / {MAX_OUT_BOUNDS}</span>
-              ) : (
-                <span>Connecting .....</span>
+                  {(syncStatus.connections != 0) ? (
+                    <span>Connected: {parseInt(syncStatus.connections.toString())} / {MAX_OUT_BOUNDS}</span>
+                  ) : (
+                    <span>Connecting .....</span>
+                  )}
+                </>
               )}
             </div>
           )}

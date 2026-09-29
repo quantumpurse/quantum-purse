@@ -11,6 +11,7 @@ import { ccc, ClientBlockHeader, Hex } from "@ckb-ccc/core";
 import { NERVOS_DAO } from "../../../../core/config";
 import { parseEpoch, getProfit } from "../../../../core/epoch";
 import { logger } from '../../../../core/logger';
+import { QPClient } from "../../../../core/ccc-adapter/qp_client";
 
 const RequestWithdraw: React.FC = () => {
   const [form] = Form.useForm();
@@ -44,27 +45,32 @@ const RequestWithdraw: React.FC = () => {
   const isToValid = values?.to && toError.length === 0;
 
   const quantumPurse = QuantumPurse.getInstance();
+  const isLightClient = quantumPurse.client instanceof QPClient;
 
   useEffect(() => {
     (async () => {
-      if (quantumPurse && quantumPurse.hasClientStarted) {
-        const header = await quantumPurse.client.getTipHeader();
-        setTipHeader(header);
-      }
+      if (!quantumPurse) return;
+      if (isLightClient && !quantumPurse.hasClientStarted) return;
+      const header = await quantumPurse.client.getTipHeader();
+      setTipHeader(header);
+      
     })();
   }, [quantumPurse, quantumPurse.hasClientStarted]);
 
   useEffect(() => {
-    if (!tipHeader || daoCells.length === 0 || !quantumPurse.hasClientStarted) return;
+    if (daoCells.length === 0) return;
+    if (!tipHeader) return;
+    if (isLightClient &&!quantumPurse.hasClientStarted) return;
 
     const fetchRemainingDays = async () => {
       const estimatedInfos: { [key: string]: {tilMaxProfit: number, currentProfit: number, blockNum: bigint} } = {};
       for (const cell of depositCells) {
         const key = cell.outPoint.txHash + cell.outPoint.index;
         try {
-          await quantumPurse.client.fetchTransaction(cell.outPoint.txHash);
+
+          if (isLightClient) await quantumPurse.client.fetchTransaction(cell.outPoint.txHash);
           const depositTx = await quantumPurse.client.getTransaction(cell.outPoint.txHash);
-          const depositHeader = await quantumPurse.client.getHeader(depositTx?.blockHash as Hex);
+          const depositHeader = await quantumPurse.client.getHeaderByHash(depositTx?.blockHash as Hex);
           if (!depositHeader) {
             throw new Error("Unable to retrieve DAO deposit block header at tx: " + cell.outPoint.txHash);
           }
@@ -131,7 +137,7 @@ const RequestWithdraw: React.FC = () => {
   const getNervosDaoInfo = async (depositCell: ccc.Cell):Promise<{depositHeader: ClientBlockHeader}> => {
     const depositTx = await quantumPurse.client.getTransaction(depositCell.outPoint.txHash);
     const blockHash = depositTx?.blockHash;
-    const header = await quantumPurse.client.getHeader(blockHash as Hex);
+    const header = await quantumPurse.client.getHeaderByHash(blockHash as Hex);
     if (!header) {
       throw new Error("Unable to retrieve block header!");
     }

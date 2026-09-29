@@ -52,6 +52,14 @@ export const AccountItem: React.FC<AccountItemProps> = ({
   const isActive = spxLockArgs === wallet.current.spxLockArgs;
   const isWalletPage = useLocation().pathname === "/settings/accounts";
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const shortenedAddress = useMemo(
+    () =>
+      screens.md
+        ? shortenAddress(address, 20, 45)
+        : shortenAddress(address, 10, 25),
+    [address, screens.md],
+  );
+
   const menuOptions = useMemo(
     () => [
       {
@@ -93,15 +101,7 @@ export const AccountItem: React.FC<AccountItemProps> = ({
             )}
           </p>
           <span className="address">
-            {screens.md ? (
-              <span>
-                {shortenAddress(address, 20, 45)}
-              </span>
-            ) : (
-              <span>
-                {shortenAddress(address, 10, 25)}
-              </span>
-            )}
+            <span> {shortenedAddress} </span>
             {copyable && (
               <Copy value={address} className="copyable">
                 <CopyOutlined />
@@ -131,9 +131,9 @@ export const AccountItem: React.FC<AccountItemProps> = ({
         centered
         width={450}
       >
-        <AccountSetting 
-          account={{ name, address, spxLockArgs }} 
-          onClose={() => setIsModalOpen(false)} 
+        <AccountSetting
+          account={{ name, address, spxLockArgs }}
+          onClose={() => setIsModalOpen(false)}
         />
       </Modal>
     </>
