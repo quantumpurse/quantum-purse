@@ -6,10 +6,10 @@ import { bytesToHex } from "../src/core/daov2/hash_builder";
 
 // Cross-implementation known-answer vector (BACKLOG #6). The same fixture is
 // pinned in `ckb-dao-v2-code/event-models/src/events/address_binding.rs` and
-// `ckb-dao-v2-code/frontend/src/crypto/address_binding_hash.test.ts` — all
+// `ckb-dao-v2-code/frontend/src/events/address_binding.test.ts` — all
 // three hashers must produce this digest or binding verification breaks.
 const VECTOR_HASH =
-  "5419dae0afb90b318057c1461527e4775cdbc219069b57883a6c623e597a2581";
+  "ffda98ad335b9b7f3a8a640f3d805dcc490a8125a6b346acfcbc25f21975bac2";
 
 const ACCOUNT_PUBKEY = "aa".repeat(32);
 const SECRET = "A1b2C3d4E5f6G7h8I9j0K1l2M3n4O5p6";
@@ -43,6 +43,9 @@ function vectorPayload(overrides: Record<string, unknown> = {}) {
     is_binding: true,
     created_at: "2026-01-02T03:04:05",
     expired_at: "2026-01-02T03:04:25",
+    // Rule 17: the archive statement, hashed as the last two fields.
+    seen_leaf_count: 3,
+    seen_mmr_root: "cd".repeat(32),
     ...overrides,
   };
 }

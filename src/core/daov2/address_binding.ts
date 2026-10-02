@@ -126,6 +126,11 @@ export class AddressBindingEvent {
 	readonly user_proof: string | null;
 	readonly server_proof: string | null;
 	readonly ckb_block_height: number | null;
+	// Rule 17: what the archive held when the server issued this challenge,
+	// inside the hash. The signed event then states "the archive was exactly
+	// these seen_leaf_count leaves with this root", which auditors check.
+	readonly seen_leaf_count: number;
+	readonly seen_mmr_root: string;
 	readonly ckb_addresses: string[];
 	readonly bind_signatures: string[];
 	readonly is_binding: boolean;
@@ -140,6 +145,8 @@ export class AddressBindingEvent {
 		this.user_proof = payload.user_proof;
 		this.server_proof = payload.server_proof;
 		this.ckb_block_height = payload.ckb_block_height;
+		this.seen_leaf_count = payload.seen_leaf_count;
+		this.seen_mmr_root = payload.seen_mmr_root;
 		this.ckb_addresses = payload.ckb_addresses;
 		this.bind_signatures = payload.bind_signatures;
 		this.is_binding = payload.is_binding;
@@ -297,7 +304,7 @@ export class AddressBindingEvent {
 	 *
 	 * Field order: event_type, user_id, account_pubkey,
 	 * ckb_block_height (i64 LE), each address, is_binding (as 0/1 byte),
-	 * created_at, expired_at.
+	 * created_at, expired_at, seen_leaf_count (i64 LE), seen_mmr_root.
 	 */
 	private async computeHash(): Promise<string> {
 		const builder = new HashBuilder()
@@ -316,6 +323,8 @@ export class AddressBindingEvent {
 
 		builder.datetime(this.created_at);
 		builder.datetime(this.expired_at);
+		builder.i64(this.seen_leaf_count);
+		builder.str(this.seen_mmr_root);
 
 		return builder.digest();
 	}
