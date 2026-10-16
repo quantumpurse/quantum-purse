@@ -90,14 +90,14 @@ export function checkChallengeFreshness(payload: {
 	const now = Date.now();
 	const skewMs = createdAt - now;
 	if (Math.abs(skewMs) > CLOCK_SKEW_TOLERANCE_MS) {
-		// The wallet cannot tell which side is wrong: a device clock that is
-		// off and a server misreporting time look identical from here.
+		// The wallet cannot tell which side is wrong, but for an honest user
+		// the likely cause is a drifted device clock or a slow connection, so
+		// the message says what they can do about it.
 		const direction = skewMs > 0 ? "ahead of" : "behind";
 		throw new Error(
-			`Binding event's created_at is ${Math.abs(skewMs) / 1000}s ${direction} ` +
-				`this device's clock (tolerance ${CLOCK_SKEW_TOLERANCE_MS / 1000}s). ` +
-				`Either this device's clock is wrong or the server is misreporting ` +
-				`time — refusing to sign.`,
+			`The server's time is ${Math.abs(skewMs) / 1000}s ${direction} this ` +
+				`device's clock (limit ${CLOCK_SKEW_TOLERANCE_MS / 1000}s). Make sure ` +
+				`this device sets its clock automatically, then try again.`,
 		);
 	}
 

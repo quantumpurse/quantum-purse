@@ -44,13 +44,18 @@ export class SchnorrProof {
 		return bytesToHex(this.publicKey);
 	}
 
-	/** Verify that this proof's signature is valid for the given message. */
+	/**
+	 * Verify that this proof's signature is valid for the given message.
+	 * This wallet only verifies server proofs, so the errors here and in
+	 * `verifyWithKey` name the key as the server's.
+	 */
 	async verify(message: string): Promise<void> {
 		const msgBytes = new TextEncoder().encode(message);
 		const valid = schnorr.verify(this.signature, msgBytes, this.publicKey);
 		if (!valid) {
 			throw new Error(
-				"Schnorr signature verification failed. The data may have been tampered with.",
+				`Signature verification failed against the server's public key ${this.publicKeyHex()}. ` +
+					"The data may have been tampered with.",
 			);
 		}
 	}
@@ -62,7 +67,8 @@ export class SchnorrProof {
 	async verifyWithKey(message: string, expectedPublicKeyHex: string): Promise<void> {
 		if (this.publicKeyHex() !== expectedPublicKeyHex) {
 			throw new Error(
-				"Proof was signed by an unknown key — expected public key does not match.",
+				`Proof was signed by an unknown key ${this.publicKeyHex()} — expected ` +
+					`the server's public key ${expectedPublicKeyHex}.`,
 			);
 		}
 		await this.verify(message);
