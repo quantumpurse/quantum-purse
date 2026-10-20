@@ -5,7 +5,7 @@ import { checkChallengeFreshness } from "../src/core/daov2/address_binding";
 import { bytesToHex } from "../src/core/daov2/hash_builder";
 
 // Cross-implementation known-answer vector (BACKLOG #6). The same fixture is
-// pinned in `ckb-dao-v2-code/event-models/src/events/address_binding.rs` and
+// pinned in `ckb-dao-v2-code/consensus/src/event_models/address_binding.rs` and
 // `ckb-dao-v2-code/frontend/src/events/address_binding.test.ts` — all
 // three hashers must produce this digest or binding verification breaks.
 const VECTOR_HASH =
